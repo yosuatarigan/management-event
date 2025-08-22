@@ -23,10 +23,19 @@ class HomeRouter extends StatelessWidget {
               return const Scaffold(body: Center(child: CircularProgressIndicator()));
             }
             final data = profSnap.data!.data()!;
-            final role = data['role'] as String? ?? 'coordinator';
+            if (data['disabled'] == true) {
+              // Blokir akses jika akun dinonaktifkan
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Akun Anda dinonaktifkan. Hubungi admin.')),
+                );
+                await AuthService.signOut();
+              });
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
+            final role = (data['role'] as String?) ?? 'coordinator';
             if (role == 'admin') return const AdminDashboard();
             if (role == 'approver') return const ApprovalDashboard();
-            // default: koordinator
             return const CoordinatorDashboard();
           },
         );

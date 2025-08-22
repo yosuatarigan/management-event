@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:management_event/pages/roles/admin/account_management_page.dart';
 import 'package:management_event/services/sample_users.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/firestore_refs.dart';
@@ -33,6 +34,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
         children: [
           Text('Master Data', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.manage_accounts),
+              title: const Text('Manajemen Akun'),
+              subtitle: const Text(
+                'Buat user, ubah role, aktif/nonaktif, reset password',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AccountManagementPage(),
+                  ),
+                );
+              },
+            ),
+          ),
           ElevatedButton.icon(
             onPressed: () async {
               await SampleUsers.generateAll();
