@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "723045892957",
+    "project_id": "sky-lab-edc2e",
+    "storage_bucket": "sky-lab-edc2e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:723045892957:android:b273de0fa043b0b2219eb4",
+        "android_client_info": {
+          "package_name": "com.example.management_event"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYjPXGfwhv3QLARg9PmJmh4ARbcseI9zc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
