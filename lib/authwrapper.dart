@@ -4,6 +4,7 @@ import 'package:management_event/cordinator_dashboard.dart';
 import 'login_page.dart';
 import 'home_page.dart';
 import 'admin_dashboard.dart';
+import 'approver_dashboard.dart';
 import 'user_service.dart';
 import 'user_model.dart';
 
@@ -187,15 +188,12 @@ class AuthWrapper extends StatelessWidget {
         return CoordinatorDashboard();
       
       case UserRole.approver:
-        // Bisa dikembangkan dengan dashboard khusus approver
-        return HomePage(userRole: user.role);
+        return ApproverDashboard();
       
       case UserRole.bawahan:
         // Dashboard untuk bawahan
         return HomePage(userRole: user.role);
       
-      default:
-        return HomePage(userRole: user.role);
-    }
+      }
   }
 }
