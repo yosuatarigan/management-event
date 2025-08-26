@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:management_event/cordinator_dashboard.dart';
 import 'login_page.dart';
 import 'home_page.dart';
 import 'admin_dashboard.dart';
@@ -183,8 +184,7 @@ class AuthWrapper extends StatelessWidget {
         return AdminDashboard();
       
       case UserRole.koordinator:
-        // Bisa dikembangkan dengan dashboard khusus koordinator
-        return HomePage(userRole: user.role);
+        return CoordinatorDashboard();
       
       case UserRole.approver:
         // Bisa dikembangkan dengan dashboard khusus approver
