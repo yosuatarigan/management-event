@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'user_management_page.dart';
+import 'location_management_page.dart';
 import 'user_service.dart';
 import 'user_model.dart';
 
@@ -140,7 +141,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 SizedBox(height: 30),
                 
                 Text(
-                  'Management',
+                  'Event Management',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -172,10 +173,35 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         },
                       ),
                       _buildMenuCard(
-                        icon: Icons.settings,
-                        title: 'Settings',
-                        subtitle: 'Pengaturan sistem',
-                        color: Colors.grey,
+                        icon: Icons.location_on,
+                        title: 'Kelola Lokasi',
+                        subtitle: 'Atur venue & lokasi event',
+                        color: Colors.green,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LocationManagementPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildMenuCard(
+                        icon: Icons.event,
+                        title: 'Event Management',
+                        subtitle: 'Kelola event & acara',
+                        color: Colors.purple,
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Coming Soon!')),
+                          );
+                        },
+                      ),
+                      _buildMenuCard(
+                        icon: Icons.calendar_today,
+                        title: 'Booking Management',
+                        subtitle: 'Kelola reservasi lokasi',
+                        color: Colors.orange,
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Coming Soon!')),
@@ -186,7 +212,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         icon: Icons.analytics,
                         title: 'Reports',
                         subtitle: 'Laporan dan analitik',
-                        color: Colors.green,
+                        color: Colors.teal,
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Coming Soon!')),
@@ -194,10 +220,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         },
                       ),
                       _buildMenuCard(
-                        icon: Icons.security,
-                        title: 'Security',
-                        subtitle: 'Keamanan sistem',
-                        color: Colors.red,
+                        icon: Icons.settings,
+                        title: 'Settings',
+                        subtitle: 'Pengaturan sistem',
+                        color: Colors.grey,
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Coming Soon!')),
