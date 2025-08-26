@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'pages/auth/login_page.dart';
-import 'pages/home_router.dart';
+import 'package:management_event/authwrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(const AppRoot());
+  runApp(MyApp());
 }
 
-class AppRoot extends StatelessWidget {
-  const AppRoot({super.key});
-
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Manajemen Acara',
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
+      title: 'Flutter Firebase Auth',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: AuthWrapper(),
       debugShowCheckedModeBanner: false,
-      home: const HomeRouter(),
-      routes: {'/login': (_) => const LoginPage()},
     );
   }
 }
