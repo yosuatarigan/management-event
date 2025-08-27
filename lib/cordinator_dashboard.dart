@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'berita_acara_page.dart';
 import 'evidence_page.dart';  // Import evidence page
 import 'nota_page.dart';  // Import nota page
+import 'absensi_page.dart';  // Import absensi page
 import 'user_service.dart';
 import 'user_model.dart';
 
@@ -214,8 +215,11 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
                         subtitle: 'Kelola absensi peserta',
                         color: Colors.purple,
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Coming Soon - Absensi')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AbsensiPage(),
+                            ),
                           );
                         },
                       ),
