@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'berita_acara_page.dart';
 import 'user_service.dart';
 import 'user_model.dart';
 
@@ -169,8 +170,11 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
                         subtitle: 'Kelola berita acara kegiatan',
                         color: Colors.blue,
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Coming Soon - Berita Acara')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BeritaAcaraPage(),
+                            ),
                           );
                         },
                       ),

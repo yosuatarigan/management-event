@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'approval_ba_page.dart';
 import 'user_service.dart';
 import 'user_model.dart';
 
@@ -236,8 +237,11 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                               color: Colors.blue,
                               pendingCount: 5,
                               onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Coming Soon - Approval BA')),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ApprovalBAPage(),
+                                  ),
                                 );
                               },
                             ),
