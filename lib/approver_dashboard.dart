@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:management_event/approval_epidence_page.dart';
 import 'approval_ba_page.dart';
 import 'user_service.dart';
 import 'user_model.dart';
+import 'evidence_service.dart';
 
 class ApproverDashboard extends StatefulWidget {
   @override
@@ -12,11 +14,13 @@ class ApproverDashboard extends StatefulWidget {
 class _ApproverDashboardState extends State<ApproverDashboard> {
   UserModel? currentUser;
   bool _isLoading = true;
+  Map<String, dynamic> _evidenceStats = {};
 
   @override
   void initState() {
     super.initState();
     _loadCurrentUser();
+    _loadEvidenceStats();
   }
 
   Future<void> _loadCurrentUser() async {
@@ -26,6 +30,15 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
       print('Error loading user: $e');
     }
     setState(() => _isLoading = false);
+  }
+
+  Future<void> _loadEvidenceStats() async {
+    try {
+      final stats = await EvidenceService.getEvidenceStats();
+      setState(() => _evidenceStats = stats);
+    } catch (e) {
+      print('Error loading evidence stats: $e');
+    }
   }
 
   Future<void> _signOut() async {
@@ -45,6 +58,11 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
+
+    final totalPending = (_evidenceStats['pending'] ?? 0) + 5; // 5 untuk BA pending (hardcoded)
+    final evidencePending = _evidenceStats['pending'] ?? 0;
+    final baPending = 5; // Hardcoded untuk sekarang
+    final notaPending = 3; // Hardcoded untuk sekarang
 
     return Scaffold(
       appBar: AppBar(
@@ -195,7 +213,7 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                               ),
                             ),
                             Text(
-                              '12 items menunggu persetujuan Anda',
+                              '$totalPending items menunggu persetujuan Anda',
                               style: TextStyle(
                                 color: Colors.orange.shade700,
                                 fontSize: 12,
@@ -211,7 +229,7 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          '12',
+                          '$totalPending',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -235,7 +253,7 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                               title: 'Approval BA',
                               subtitle: 'Setujui berita acara',
                               color: Colors.blue,
-                              pendingCount: 5,
+                              pendingCount: baPending,
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -253,10 +271,13 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                               title: 'Approval Evidence',
                               subtitle: 'Setujui bukti kegiatan',
                               color: Colors.green,
-                              pendingCount: 4,
+                              pendingCount: evidencePending,
                               onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Coming Soon - Approval Evidence')),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ApprovalEvidencePage(),
+                                  ),
                                 );
                               },
                             ),
@@ -272,7 +293,7 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                               title: 'Approval Nota',
                               subtitle: 'Setujui nota pembayaran',
                               color: Colors.purple,
-                              pendingCount: 3,
+                              pendingCount: notaPending,
                               onTap: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text('Coming Soon - Approval Nota')),
