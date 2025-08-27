@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:management_event/approval_epidence_page.dart';
 import 'approval_ba_page.dart';
+import 'approval_nota_page.dart';  // Import approval nota page
 import 'user_service.dart';
 import 'user_model.dart';
 import 'evidence_service.dart';
+import 'nota_service.dart';  // Import nota service
 
 class ApproverDashboard extends StatefulWidget {
   @override
@@ -15,6 +17,7 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
   UserModel? currentUser;
   bool _isLoading = true;
   Map<String, dynamic> _evidenceStats = {};
+  Map<String, dynamic> _notaStats = {};
 
   @override
   void initState() {
@@ -34,10 +37,14 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
 
   Future<void> _loadEvidenceStats() async {
     try {
-      final stats = await EvidenceService.getEvidenceStats();
-      setState(() => _evidenceStats = stats);
+      final evidenceStats = await EvidenceService.getEvidenceStats();
+      final notaStats = await NotaService.getNotaStats();
+      setState(() {
+        _evidenceStats = evidenceStats;
+        _notaStats = notaStats;
+      });
     } catch (e) {
-      print('Error loading evidence stats: $e');
+      print('Error loading stats: $e');
     }
   }
 
@@ -59,10 +66,10 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
       );
     }
 
-    final totalPending = (_evidenceStats['pending'] ?? 0) + 5; // 5 untuk BA pending (hardcoded)
+    final totalPending = (_evidenceStats['pending'] ?? 0) + (_notaStats['pending_count'] ?? 0) + 5; // 5 untuk BA pending (hardcoded)
     final evidencePending = _evidenceStats['pending'] ?? 0;
     final baPending = 5; // Hardcoded untuk sekarang
-    final notaPending = 3; // Hardcoded untuk sekarang
+    final notaPending = _notaStats['pending_count'] ?? 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -295,8 +302,11 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                               color: Colors.purple,
                               pendingCount: notaPending,
                               onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Coming Soon - Approval Nota')),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ApprovalNotaPage(),
+                                  ),
                                 );
                               },
                             ),

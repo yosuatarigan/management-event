@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'berita_acara_page.dart';
 import 'evidence_page.dart';  // Import evidence page
+import 'nota_page.dart';  // Import nota page
 import 'user_service.dart';
 import 'user_model.dart';
 
@@ -199,8 +200,11 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
                         subtitle: 'Kelola nota pembayaran',
                         color: Colors.orange,
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Coming Soon - Nota')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => NotaPage(),
+                            ),
                           );
                         },
                       ),
