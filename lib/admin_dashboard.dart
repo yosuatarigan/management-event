@@ -186,50 +186,50 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           );
                         },
                       ),
-                      _buildMenuCard(
-                        icon: Icons.event,
-                        title: 'Event Management',
-                        subtitle: 'Kelola event & acara',
-                        color: Colors.purple,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Coming Soon!')),
-                          );
-                        },
-                      ),
-                      _buildMenuCard(
-                        icon: Icons.calendar_today,
-                        title: 'Booking Management',
-                        subtitle: 'Kelola reservasi lokasi',
-                        color: Colors.orange,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Coming Soon!')),
-                          );
-                        },
-                      ),
-                      _buildMenuCard(
-                        icon: Icons.analytics,
-                        title: 'Reports',
-                        subtitle: 'Laporan dan analitik',
-                        color: Colors.teal,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Coming Soon!')),
-                          );
-                        },
-                      ),
-                      _buildMenuCard(
-                        icon: Icons.settings,
-                        title: 'Settings',
-                        subtitle: 'Pengaturan sistem',
-                        color: Colors.grey,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Coming Soon!')),
-                          );
-                        },
-                      ),
+                      // _buildMenuCard(
+                      //   icon: Icons.event,
+                      //   title: 'Event Management',
+                      //   subtitle: 'Kelola event & acara',
+                      //   color: Colors.purple,
+                      //   onTap: () {
+                      //     ScaffoldMessenger.of(context).showSnackBar(
+                      //       SnackBar(content: Text('Coming Soon!')),
+                      //     );
+                      //   },
+                      // ),
+                      // _buildMenuCard(
+                      //   icon: Icons.calendar_today,
+                      //   title: 'Booking Management',
+                      //   subtitle: 'Kelola reservasi lokasi',
+                      //   color: Colors.orange,
+                      //   onTap: () {
+                      //     ScaffoldMessenger.of(context).showSnackBar(
+                      //       SnackBar(content: Text('Coming Soon!')),
+                      //     );
+                      //   },
+                      // ),
+                      // _buildMenuCard(
+                      //   icon: Icons.analytics,
+                      //   title: 'Reports',
+                      //   subtitle: 'Laporan dan analitik',
+                      //   color: Colors.teal,
+                      //   onTap: () {
+                      //     ScaffoldMessenger.of(context).showSnackBar(
+                      //       SnackBar(content: Text('Coming Soon!')),
+                      //     );
+                      //   },
+                      // ),
+                      // _buildMenuCard(
+                      //   icon: Icons.settings,
+                      //   title: 'Settings',
+                      //   subtitle: 'Pengaturan sistem',
+                      //   color: Colors.grey,
+                      //   onTap: () {
+                      //     ScaffoldMessenger.of(context).showSnackBar(
+                      //       SnackBar(content: Text('Coming Soon!')),
+                      //     );
+                      //   },
+                      // ),
                     ],
                   ),
                 ),
