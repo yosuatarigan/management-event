@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:management_event/user_model.dart';
 import 'evidence_service.dart';
 import 'evidence_model.dart';
 import 'location_service.dart';
@@ -59,7 +60,7 @@ class _EvidencePageState extends State<EvidencePage> {
                   },
                 ),
                 SizedBox(height: 12),
-                
+
                 // Filters
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -74,7 +75,7 @@ class _EvidencePageState extends State<EvidencePage> {
               ],
             ),
           ),
-          
+
           // Evidence List
           Expanded(
             child: StreamBuilder<List<EvidenceModel>>(
@@ -85,9 +86,7 @@ class _EvidencePageState extends State<EvidencePage> {
                 }
 
                 if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
+                  return Center(child: Text('Error: ${snapshot.error}'));
                 }
 
                 final evidenceList = _filterEvidence(snapshot.data ?? []);
@@ -134,7 +133,10 @@ class _EvidencePageState extends State<EvidencePage> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: _selectedStatusFilter != null ? getStatusColor(_selectedStatusFilter).withOpacity(0.1) : Colors.white,
+          color:
+              _selectedStatusFilter != null
+                  ? getStatusColor(_selectedStatusFilter).withOpacity(0.1)
+                  : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.grey.shade300),
         ),
@@ -144,13 +146,19 @@ class _EvidencePageState extends State<EvidencePage> {
             Icon(
               Icons.filter_list,
               size: 16,
-              color: _selectedStatusFilter != null ? getStatusColor(_selectedStatusFilter) : Colors.grey.shade600,
+              color:
+                  _selectedStatusFilter != null
+                      ? getStatusColor(_selectedStatusFilter)
+                      : Colors.grey.shade600,
             ),
             SizedBox(width: 4),
             Text(
               _selectedStatusFilter?.toString().split('.').last ?? 'Status',
               style: TextStyle(
-                color: _selectedStatusFilter != null ? getStatusColor(_selectedStatusFilter) : Colors.grey.shade600,
+                color:
+                    _selectedStatusFilter != null
+                        ? getStatusColor(_selectedStatusFilter)
+                        : Colors.grey.shade600,
                 fontSize: 12,
               ),
             ),
@@ -158,16 +166,16 @@ class _EvidencePageState extends State<EvidencePage> {
           ],
         ),
       ),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: null,
-          child: Text('Semua Status'),
-        ),
-        ...StatusEvidence.values.map((status) => PopupMenuItem(
-          value: status,
-          child: Text(status.toString().split('.').last),
-        )),
-      ],
+      itemBuilder:
+          (context) => [
+            PopupMenuItem(value: null, child: Text('Semua Status')),
+            ...StatusEvidence.values.map(
+              (status) => PopupMenuItem(
+                value: status,
+                child: Text(status.toString().split('.').last),
+              ),
+            ),
+          ],
       onSelected: (value) {
         setState(() => _selectedStatusFilter = value);
       },
@@ -192,7 +200,10 @@ class _EvidencePageState extends State<EvidencePage> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: _selectedKategoriFilter != null ? Colors.purple.shade100 : Colors.white,
+          color:
+              _selectedKategoriFilter != null
+                  ? Colors.purple.shade100
+                  : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.grey.shade300),
         ),
@@ -202,13 +213,21 @@ class _EvidencePageState extends State<EvidencePage> {
             Icon(
               Icons.category,
               size: 16,
-              color: _selectedKategoriFilter != null ? Colors.purple.shade600 : Colors.grey.shade600,
+              color:
+                  _selectedKategoriFilter != null
+                      ? Colors.purple.shade600
+                      : Colors.grey.shade600,
             ),
             SizedBox(width: 4),
             Text(
-              _selectedKategoriFilter != null ? getKategoriDisplayName(_selectedKategoriFilter!) : 'Kategori',
+              _selectedKategoriFilter != null
+                  ? getKategoriDisplayName(_selectedKategoriFilter!)
+                  : 'Kategori',
               style: TextStyle(
-                color: _selectedKategoriFilter != null ? Colors.purple.shade600 : Colors.grey.shade600,
+                color:
+                    _selectedKategoriFilter != null
+                        ? Colors.purple.shade600
+                        : Colors.grey.shade600,
                 fontSize: 12,
               ),
             ),
@@ -216,16 +235,16 @@ class _EvidencePageState extends State<EvidencePage> {
           ],
         ),
       ),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: null,
-          child: Text('Semua Kategori'),
-        ),
-        ...KategoriEvidence.values.map((kategori) => PopupMenuItem(
-          value: kategori,
-          child: Text(getKategoriDisplayName(kategori)),
-        )),
-      ],
+      itemBuilder:
+          (context) => [
+            PopupMenuItem(value: null, child: Text('Semua Kategori')),
+            ...KategoriEvidence.values.map(
+              (kategori) => PopupMenuItem(
+                value: kategori,
+                child: Text(getKategoriDisplayName(kategori)),
+              ),
+            ),
+          ],
       onSelected: (value) {
         setState(() => _selectedKategoriFilter = value);
       },
@@ -254,9 +273,7 @@ class _EvidencePageState extends State<EvidencePage> {
           SizedBox(height: 8),
           Text(
             'Upload evidence pertama Anda',
-            style: TextStyle(
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(color: Colors.grey.shade500),
           ),
           SizedBox(height: 24),
           ElevatedButton.icon(
@@ -274,9 +291,7 @@ class _EvidencePageState extends State<EvidencePage> {
       onTap: () => _showDetailDialog(evidence),
       child: Card(
         elevation: 3,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -291,19 +306,20 @@ class _EvidencePageState extends State<EvidencePage> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                  child: evidence.isImage
-                      ? Image.network(
-                          evidence.fileUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildFileIcon(evidence);
-                          },
-                        )
-                      : _buildFileIcon(evidence),
+                  child:
+                      evidence.isImage
+                          ? Image.network(
+                            evidence.fileUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return _buildFileIcon(evidence);
+                            },
+                          )
+                          : _buildFileIcon(evidence),
                 ),
               ),
             ),
-            
+
             // Info Section
             Expanded(
               flex: 2,
@@ -316,7 +332,10 @@ class _EvidencePageState extends State<EvidencePage> {
                     Row(
                       children: [
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: evidence.statusColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
@@ -332,7 +351,10 @@ class _EvidencePageState extends State<EvidencePage> {
                         ),
                         SizedBox(width: 4),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: evidence.kategoriColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
@@ -349,7 +371,7 @@ class _EvidencePageState extends State<EvidencePage> {
                       ],
                     ),
                     SizedBox(height: 6),
-                    
+
                     // Location
                     Text(
                       evidence.lokasiName,
@@ -361,7 +383,7 @@ class _EvidencePageState extends State<EvidencePage> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     SizedBox(height: 2),
-                    
+
                     // Date
                     Text(
                       evidence.formattedDate,
@@ -370,9 +392,10 @@ class _EvidencePageState extends State<EvidencePage> {
                         fontSize: 10,
                       ),
                     ),
-                    
+
                     // Description if available
-                    if (evidence.description != null && evidence.description!.isNotEmpty) ...[
+                    if (evidence.description != null &&
+                        evidence.description!.isNotEmpty) ...[
                       SizedBox(height: 4),
                       Text(
                         evidence.description!,
@@ -426,13 +449,19 @@ class _EvidencePageState extends State<EvidencePage> {
 
   List<EvidenceModel> _filterEvidence(List<EvidenceModel> evidenceList) {
     return evidenceList.where((evidence) {
-      final matchesSearch = evidence.lokasiName.toLowerCase().contains(_searchQuery) ||
-          (evidence.description?.toLowerCase().contains(_searchQuery) ?? false) ||
+      final matchesSearch =
+          evidence.lokasiName.toLowerCase().contains(_searchQuery) ||
+          (evidence.description?.toLowerCase().contains(_searchQuery) ??
+              false) ||
           evidence.kategoriDisplayName.toLowerCase().contains(_searchQuery);
-      
-      final matchesStatus = _selectedStatusFilter == null || evidence.status == _selectedStatusFilter;
-      final matchesKategori = _selectedKategoriFilter == null || evidence.kategori == _selectedKategoriFilter;
-      
+
+      final matchesStatus =
+          _selectedStatusFilter == null ||
+          evidence.status == _selectedStatusFilter;
+      final matchesKategori =
+          _selectedKategoriFilter == null ||
+          evidence.kategori == _selectedKategoriFilter;
+
       return matchesSearch && matchesStatus && matchesKategori;
     }).toList();
   }
@@ -440,14 +469,15 @@ class _EvidencePageState extends State<EvidencePage> {
   void _showUploadEvidenceDialog() {
     showDialog(
       context: context,
-      builder: (context) => EvidenceUploadDialog(
-        onUploaded: () {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Evidence berhasil diupload')),
-          );
-        },
-      ),
+      builder:
+          (context) => EvidenceUploadDialog(
+            onUploaded: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Evidence berhasil diupload')),
+              );
+            },
+          ),
     );
   }
 
@@ -469,7 +499,8 @@ class _EvidencePageState extends State<EvidencePage> {
 class EvidenceUploadDialog extends StatefulWidget {
   final VoidCallback onUploaded;
 
-  const EvidenceUploadDialog({Key? key, required this.onUploaded}) : super(key: key);
+  const EvidenceUploadDialog({Key? key, required this.onUploaded})
+    : super(key: key);
 
   @override
   _EvidenceUploadDialogState createState() => _EvidenceUploadDialogState();
@@ -479,19 +510,69 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
-  
+
   String _selectedLokasiId = '';
   String _selectedLokasiName = '';
   KategoriEvidence _selectedKategori = KategoriEvidence.foto;
   File? _selectedFile;
   bool _isUploading = false;
 
+  // --- PERUBAHAN DIMULAI DI SINI ---
+  UserModel? _currentUser;
+  bool _isLoadingUser = true; // State untuk loading data user
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserDataAndSetLocation();
+  }
+
+  /// Fungsi untuk mengambil data user dan mengatur lokasi jika user adalah koordinator
+  Future<void> _loadUserDataAndSetLocation() async {
+    final user = await UserService.getCurrentUser();
+
+    // Jika user adalah koordinator dan memiliki locationId
+    if (user != null &&
+        user.role == UserRole.koordinator &&
+        user.locationId != null &&
+        user.locationId!.isNotEmpty) {
+      // Ambil semua data lokasi untuk menemukan nama lokasi berdasarkan ID
+      // .first akan mengambil snapshot data terbaru dari stream
+      final locations = await LocationService.getAllLocations().first;
+      try {
+        final userLocation = locations.firstWhere(
+          (loc) => loc.id == user.locationId,
+        );
+        setState(() {
+          _selectedLokasiId = userLocation.id;
+          _selectedLokasiName =
+              '${userLocation.name} - ${userLocation.city}'; // Set nama lokasi untuk ditampilkan
+        });
+      } catch (e) {
+        // Handle jika ID lokasi user tidak ditemukan di collection lokasi
+        print('Error: Lokasi untuk koordinator tidak ditemukan: $e');
+        setState(() {
+          _selectedLokasiName = 'Lokasi tidak valid';
+        });
+      }
+    }
+
+    // Update state setelah selesai
+    setState(() {
+      _currentUser = user;
+      _isLoadingUser = false;
+    });
+  }
+  // --- PERUBAHAN SELESAI DI SINI ---
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -522,7 +603,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                 ],
               ),
             ),
-            
+
             // Form
             Expanded(
               child: SingleChildScrollView(
@@ -532,42 +613,84 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                   child: Column(
                     children: [
                       // Lokasi
-                      StreamBuilder<List<LocationModel>>(
-                        stream: LocationService.getAllLocations(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return CircularProgressIndicator();
-                          }
-                          
-                          final locations = snapshot.data ?? [];
-                          
-                          return DropdownButtonFormField<String>(
-                            value: _selectedLokasiId.isEmpty ? null : _selectedLokasiId,
+                      // --- PERUBAHAN PADA FIELD LOKASI ---
+                      // Tampilkan loading, field read-only, atau dropdown berdasarkan status & role
+                      _isLoadingUser
+                          ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24.0),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                          : (_currentUser?.role == UserRole.koordinator)
+                          ? TextFormField(
+                            initialValue: _selectedLokasiName,
+                            readOnly: true, // Field tidak bisa diubah
                             decoration: InputDecoration(
-                              labelText: 'Lokasi *',
+                              labelText: 'Lokasi (Otomatis)',
                               border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.location_on_outlined),
+                              filled: true,
+                              fillColor:
+                                  Colors
+                                      .grey[200], // Warna abu-abu untuk menandakan non-aktif
                             ),
-                            items: locations.map((location) {
-                              return DropdownMenuItem(
-                                value: location.id,
-                                child: Text('${location.name} - ${location.city}'),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                final selectedLocation = locations.firstWhere((loc) => loc.id == value);
-                                setState(() {
-                                  _selectedLokasiId = value;
-                                  _selectedLokasiName = selectedLocation.name;
-                                });
+                            validator: (value) {
+                              if (_selectedLokasiId.isEmpty) {
+                                return 'Lokasi koordinator tidak terdaftar';
                               }
+                              return null;
                             },
-                            validator: (value) => value?.isEmpty ?? true ? 'Lokasi wajib dipilih' : null,
-                          );
-                        },
-                      ),
+                          )
+                          : StreamBuilder<List<LocationModel>>(
+                            // Tampilkan dropdown untuk role lain (e.g. Admin)
+                            stream: LocationService.getAllLocations(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+                              final locations = snapshot.data ?? [];
+                              return DropdownButtonFormField<String>(
+                                value:
+                                    _selectedLokasiId.isEmpty
+                                        ? null
+                                        : _selectedLokasiId,
+                                decoration: InputDecoration(
+                                  labelText: 'Lokasi *',
+                                  border: OutlineInputBorder(),
+                                ),
+                                items:
+                                    locations.map((location) {
+                                      return DropdownMenuItem(
+                                        value: location.id,
+                                        child: Text(
+                                          '${location.name} - ${location.city}',
+                                        ),
+                                      );
+                                    }).toList(),
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    final selectedLocation = locations
+                                        .firstWhere((loc) => loc.id == value);
+                                    setState(() {
+                                      _selectedLokasiId = value;
+                                      _selectedLokasiName =
+                                          selectedLocation.name;
+                                    });
+                                  }
+                                },
+                                validator:
+                                    (value) =>
+                                        value?.isEmpty ?? true
+                                            ? 'Lokasi wajib dipilih'
+                                            : null,
+                              );
+                            },
+                          ),
+                      // --- AKHIR PERUBAHAN PADA FIELD LOKASI ---
                       SizedBox(height: 16),
-                      
+
                       // Kategori
                       DropdownButtonFormField<KategoriEvidence>(
                         value: _selectedKategori,
@@ -575,31 +698,34 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                           labelText: 'Kategori Evidence *',
                           border: OutlineInputBorder(),
                         ),
-                        items: KategoriEvidence.values.map((kategori) {
-                          String displayName;
-                          switch (kategori) {
-                            case KategoriEvidence.foto:
-                              displayName = 'Foto';
-                              break;
-                            case KategoriEvidence.video:
-                              displayName = 'Video';
-                              break;
-                            case KategoriEvidence.dokumen:
-                              displayName = 'Dokumen';
-                              break;
-                            case KategoriEvidence.lainnya:
-                              displayName = 'Lainnya';
-                              break;
-                          }
-                          return DropdownMenuItem(
-                            value: kategori,
-                            child: Text(displayName),
-                          );
-                        }).toList(),
-                        onChanged: (value) => setState(() => _selectedKategori = value!),
+                        items:
+                            KategoriEvidence.values.map((kategori) {
+                              String displayName;
+                              switch (kategori) {
+                                case KategoriEvidence.foto:
+                                  displayName = 'Foto';
+                                  break;
+                                case KategoriEvidence.video:
+                                  displayName = 'Video';
+                                  break;
+                                case KategoriEvidence.dokumen:
+                                  displayName = 'Dokumen';
+                                  break;
+                                case KategoriEvidence.lainnya:
+                                  displayName = 'Lainnya';
+                                  break;
+                              }
+                              return DropdownMenuItem(
+                                value: kategori,
+                                child: Text(displayName),
+                              );
+                            }).toList(),
+                        onChanged:
+                            (value) =>
+                                setState(() => _selectedKategori = value!),
                       ),
                       SizedBox(height: 16),
-                      
+
                       // File Upload Section
                       Container(
                         width: double.infinity,
@@ -626,10 +752,13 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                               ),
                               SizedBox(height: 16),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
                                 children: [
                                   ElevatedButton.icon(
-                                    onPressed: () => _captureFromCamera(isVideo: false),
+                                    onPressed:
+                                        () =>
+                                            _captureFromCamera(isVideo: false),
                                     icon: Icon(Icons.camera_alt, size: 20),
                                     label: Text('Foto'),
                                     style: ElevatedButton.styleFrom(
@@ -638,7 +767,8 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                                     ),
                                   ),
                                   ElevatedButton.icon(
-                                    onPressed: () => _captureFromCamera(isVideo: true),
+                                    onPressed:
+                                        () => _captureFromCamera(isVideo: true),
                                     icon: Icon(Icons.videocam, size: 20),
                                     label: Text('Video'),
                                     style: ElevatedButton.styleFrom(
@@ -657,45 +787,56 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                                   color: Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: _selectedKategori == KategoriEvidence.foto
-                                    ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.file(
-                                          _selectedFile!,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      )
-                                    : Center(
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              _selectedKategori == KategoriEvidence.video
-                                                  ? Icons.videocam
-                                                  : Icons.description,
-                                              size: 32,
-                                              color: Colors.grey.shade600,
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              _selectedFile!.path.split('/').last,
-                                              style: TextStyle(
-                                                fontSize: 12,
+                                child:
+                                    _selectedKategori == KategoriEvidence.foto
+                                        ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          child: Image.file(
+                                            _selectedFile!,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        )
+                                        : Center(
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                _selectedKategori ==
+                                                        KategoriEvidence.video
+                                                    ? Icons.videocam
+                                                    : Icons.description,
+                                                size: 32,
                                                 color: Colors.grey.shade600,
                                               ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
+                                              SizedBox(height: 8),
+                                              Text(
+                                                _selectedFile!.path
+                                                    .split('/')
+                                                    .last,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey.shade600,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
                               ),
                               SizedBox(height: 12),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
                                 children: [
                                   ElevatedButton.icon(
-                                    onPressed: () => setState(() => _selectedFile = null),
+                                    onPressed:
+                                        () => setState(
+                                          () => _selectedFile = null,
+                                        ),
                                     icon: Icon(Icons.delete, size: 20),
                                     label: Text('Hapus'),
                                     style: ElevatedButton.styleFrom(
@@ -704,8 +845,12 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                                     ),
                                   ),
                                   ElevatedButton.icon(
-                                    onPressed: () => _captureFromCamera(
-                                        isVideo: _selectedKategori == KategoriEvidence.video),
+                                    onPressed:
+                                        () => _captureFromCamera(
+                                          isVideo:
+                                              _selectedKategori ==
+                                              KategoriEvidence.video,
+                                        ),
                                     icon: Icon(Icons.refresh, size: 20),
                                     label: Text('Ganti'),
                                     style: ElevatedButton.styleFrom(
@@ -720,7 +865,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                         ),
                       ),
                       SizedBox(height: 16),
-                      
+
                       // Description
                       TextFormField(
                         controller: _descriptionController,
@@ -736,7 +881,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                 ),
               ),
             ),
-            
+
             // Actions
             Container(
               padding: EdgeInsets.all(20),
@@ -751,14 +896,20 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                   SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isUploading || _selectedFile == null ? null : _uploadEvidence,
-                      child: _isUploading
-                          ? SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text('Upload'),
+                      onPressed:
+                          _isUploading || _selectedFile == null
+                              ? null
+                              : _uploadEvidence,
+                      child:
+                          _isUploading
+                              ? SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : Text('Upload'),
                     ),
                   ),
                 ],
@@ -777,7 +928,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
           source: ImageSource.camera,
           maxDuration: Duration(minutes: 5),
         );
-        
+
         if (video != null) {
           setState(() {
             _selectedFile = File(video.path);
@@ -791,7 +942,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
           maxHeight: 1080,
           imageQuality: 80,
         );
-        
+
         if (image != null) {
           setState(() {
             _selectedFile = File(image.path);
@@ -800,9 +951,9 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error mengambil file: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error mengambil file: $e')));
     }
   }
 
@@ -812,7 +963,9 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
     // Validate file
     if (!EvidenceService.isValidFileType(_selectedFile!, _selectedKategori)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tipe file tidak sesuai dengan kategori yang dipilih')),
+        SnackBar(
+          content: Text('Tipe file tidak sesuai dengan kategori yang dipilih'),
+        ),
       );
       return;
     }
@@ -829,16 +982,20 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       final currentUserData = await UserService.getCurrentUser();
-      
+
       if (currentUser == null || currentUserData == null) {
         throw Exception('User not found');
       }
 
       // Create temporary evidence ID for file upload
       final tempEvidenceId = DateTime.now().millisecondsSinceEpoch.toString();
-      
+
       // Upload file
-      final fileUrl = await EvidenceService.uploadFile(_selectedFile!, tempEvidenceId, _selectedKategori);
+      final fileUrl = await EvidenceService.uploadFile(
+        _selectedFile!,
+        tempEvidenceId,
+        _selectedKategori,
+      );
 
       final evidence = EvidenceModel(
         evidenceId: '',
@@ -848,18 +1005,19 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
         lokasiName: _selectedLokasiName,
         kategori: _selectedKategori,
         fileUrl: fileUrl,
-        description: _descriptionController.text.trim().isEmpty 
-            ? null 
-            : _descriptionController.text.trim(),
+        description:
+            _descriptionController.text.trim().isEmpty
+                ? null
+                : _descriptionController.text.trim(),
         createdAt: DateTime.now(),
       );
 
       await EvidenceService.createEvidence(evidence);
       widget.onUploaded();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
     }
 
     setState(() => _isUploading = false);
@@ -876,14 +1034,17 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
 class EvidenceDetailDialog extends StatelessWidget {
   final EvidenceModel evidence;
 
-  const EvidenceDetailDialog({Key? key, required this.evidence}) : super(key: key);
+  const EvidenceDetailDialog({Key? key, required this.evidence})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -942,7 +1103,7 @@ class EvidenceDetailDialog extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Content
             Expanded(
               child: SingleChildScrollView(
@@ -960,43 +1121,49 @@ class EvidenceDetailDialog extends StatelessWidget {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: evidence.isImage
-                            ? Image.network(
-                                evidence.fileUrl,
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(evidence.kategoriIcon, size: 48),
-                                        SizedBox(height: 8),
-                                        Text('Gagal memuat file'),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              )
-                            : Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(evidence.kategoriIcon, size: 48, color: evidence.kategoriColor),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      evidence.kategoriDisplayName,
-                                      style: TextStyle(
-                                        color: evidence.kategoriColor,
-                                        fontWeight: FontWeight.w500,
+                        child:
+                            evidence.isImage
+                                ? Image.network(
+                                  evidence.fileUrl,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(evidence.kategoriIcon, size: 48),
+                                          SizedBox(height: 8),
+                                          Text('Gagal memuat file'),
+                                        ],
                                       ),
-                                    ),
-                                  ],
+                                    );
+                                  },
+                                )
+                                : Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        evidence.kategoriIcon,
+                                        size: 48,
+                                        color: evidence.kategoriColor,
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        evidence.kategoriDisplayName,
+                                        style: TextStyle(
+                                          color: evidence.kategoriColor,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
                       ),
                     ),
                     SizedBox(height: 20),
-                    
+
                     // Info Details
                     Row(
                       children: [
@@ -1005,7 +1172,10 @@ class EvidenceDetailDialog extends StatelessWidget {
                         ),
                         SizedBox(width: 16),
                         Expanded(
-                          child: _buildInfoItem('Uploader', evidence.uploaderName),
+                          child: _buildInfoItem(
+                            'Uploader',
+                            evidence.uploaderName,
+                          ),
                         ),
                       ],
                     ),
@@ -1013,17 +1183,24 @@ class EvidenceDetailDialog extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: _buildInfoItem('Tanggal', evidence.formattedDate),
+                          child: _buildInfoItem(
+                            'Tanggal',
+                            evidence.formattedDate,
+                          ),
                         ),
                         SizedBox(width: 16),
                         Expanded(
-                          child: _buildInfoItem('Kategori', evidence.kategoriDisplayName),
+                          child: _buildInfoItem(
+                            'Kategori',
+                            evidence.kategoriDisplayName,
+                          ),
                         ),
                       ],
                     ),
-                    
+
                     // Description
-                    if (evidence.description != null && evidence.description!.isNotEmpty) ...[
+                    if (evidence.description != null &&
+                        evidence.description!.isNotEmpty) ...[
                       SizedBox(height: 20),
                       Text(
                         'Deskripsi:',
@@ -1049,7 +1226,8 @@ class EvidenceDetailDialog extends StatelessWidget {
                     ],
 
                     // Rejection reason
-                    if (evidence.status == StatusEvidence.rejected && evidence.rejectionReason != null) ...[
+                    if (evidence.status == StatusEvidence.rejected &&
+                        evidence.rejectionReason != null) ...[
                       SizedBox(height: 20),
                       Container(
                         width: double.infinity,
@@ -1064,7 +1242,11 @@ class EvidenceDetailDialog extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.cancel, color: Colors.red.shade600, size: 20),
+                                Icon(
+                                  Icons.cancel,
+                                  color: Colors.red.shade600,
+                                  size: 20,
+                                ),
                                 SizedBox(width: 8),
                                 Text(
                                   'Alasan Penolakan:',
@@ -1088,7 +1270,7 @@ class EvidenceDetailDialog extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Actions
             Container(
               padding: EdgeInsets.all(20),
@@ -1112,18 +1294,12 @@ class EvidenceDetailDialog extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
         SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
         ),
       ],
     );
