@@ -4,16 +4,26 @@ import 'user_model.dart';
 
 class UserService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static final CollectionReference _usersCollection = _firestore.collection('users');
+  static final CollectionReference _usersCollection = _firestore.collection(
+    'users',
+  );
 
   // Get all users
   static Stream<List<UserModel>> getAllUsers() {
     return _usersCollection
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-            .toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs
+                  .map(
+                    (doc) => UserModel.fromMap(
+                      doc.data() as Map<String, dynamic>,
+                      doc.id,
+                    ),
+                  )
+                  .toList(),
+        );
   }
 
   // Get current user data
@@ -27,14 +37,23 @@ class UserService {
     return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
   }
 
-  // Create user document after registration
-  static Future<void> createUser(String uid, String email, String name, UserRole role) async {
+  // Create user document after registration - tambahkan parameter locationId
+  static Future<void> createUser(
+    String uid,
+    String email,
+    String password,
+    String name,
+    UserRole role,
+    String? locationId, // Parameter baru untuk locationId
+  ) async {
     final user = UserModel(
+      password: password,
       id: uid,
       email: email,
       name: name,
       role: role,
       createdAt: DateTime.now(),
+      locationId: locationId, // Set locationId
     );
 
     await _usersCollection.doc(uid).set(user.toMap());
@@ -62,5 +81,24 @@ class UserService {
     if (!doc.exists) return null;
 
     return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+  }
+
+  // Get users by location - method tambahan
+  static Stream<List<UserModel>> getUsersByLocation(String locationId) {
+    return _usersCollection
+        .where('locationId', isEqualTo: locationId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs
+                  .map(
+                    (doc) => UserModel.fromMap(
+                      doc.data() as Map<String, dynamic>,
+                      doc.id,
+                    ),
+                  )
+                  .toList(),
+        );
   }
 }

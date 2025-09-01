@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'user_service.dart';
 import 'user_model.dart';
+import 'location_service.dart';
+import 'location_model.dart';
 
 class UserManagementPage extends StatefulWidget {
   @override
@@ -75,7 +77,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
               ],
             ),
           ),
-          
+
           // Users List
           Expanded(
             child: StreamBuilder<List<UserModel>>(
@@ -86,9 +88,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 }
 
                 if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
+                  return Center(child: Text('Error: ${snapshot.error}'));
                 }
 
                 final users = _filterUsers(snapshot.data ?? []);
@@ -133,7 +133,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
   Widget _buildRoleChip(String label, UserRole? role) {
     final isSelected = _selectedRoleFilter == role;
-    
+
     return FilterChip(
       label: Text(label),
       selected: isSelected,
@@ -152,30 +152,49 @@ class _UserManagementPageState extends State<UserManagementPage> {
     return Card(
       margin: EdgeInsets.only(bottom: 12),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         contentPadding: EdgeInsets.all(16),
         leading: CircleAvatar(
           backgroundColor: _getRoleColor(user.role),
           child: Text(
             user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
-        title: Text(
-          user.name,
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: Text(user.name, style: TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(user.email),
             SizedBox(height: 4),
+            Text("Password: ${user.password}"),
+            SizedBox(height: 4),
+            // Tampilkan lokasi user
+            if (user.locationId != null) 
+              FutureBuilder<LocationModel?>(
+                future: LocationService.getLocationById(user.locationId!),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData && snapshot.data != null) {
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.location_on, size: 14, color: Colors.grey),
+                          SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              snapshot.data!.name,
+                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return SizedBox.shrink();
+                },
+              ),
             Container(
               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
@@ -224,9 +243,11 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
   List<UserModel> _filterUsers(List<UserModel> users) {
     return users.where((user) {
-      final matchesSearch = user.name.toLowerCase().contains(_searchQuery) ||
-          user.email.toLowerCase().contains(_searchQuery);
-      final matchesRole = _selectedRoleFilter == null || user.role == _selectedRoleFilter;
+      final matchesSearch =
+          user.name.toLowerCase().contains(_searchQuery) ||
+              user.email.toLowerCase().contains(_searchQuery);
+      final matchesRole =
+          _selectedRoleFilter == null || user.role == _selectedRoleFilter;
       return matchesSearch && matchesRole;
     }).toList();
   }
@@ -281,6 +302,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
     final _emailController = TextEditingController(text: user?.email ?? '');
     final _passwordController = TextEditingController();
     UserRole _selectedRole = user?.role ?? UserRole.bawahan;
+    String? _selectedLocationId = user?.locationId;
 
     showDialog(
       context: context,
@@ -306,7 +328,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.emailAddress,
-                  enabled: user == null, // Disable editing email for existing users
+                  enabled: user == null,
                 ),
                 if (user == null) ...[
                   SizedBox(height: 16),
@@ -338,6 +360,42 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     }
                   },
                 ),
+                SizedBox(height: 16),
+                // Dropdown untuk pilihan lokasi
+                StreamBuilder<List<LocationModel>>(
+                  stream: LocationService.getAllLocations(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return CircularProgressIndicator();
+                    }
+
+                    final locations = snapshot.data!;
+                    
+                    return DropdownButtonFormField<String>(
+                      value: _selectedLocationId,
+                      decoration: InputDecoration(
+                        labelText: 'Location (Optional)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.location_on),
+                      ),
+                      items: [
+                        DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('No Location'),
+                        ),
+                        ...locations.map((location) {
+                          return DropdownMenuItem<String>(
+                            value: location.id,
+                            child: Text(location.name),
+                          );
+                        }).toList(),
+                      ],
+                      onChanged: (value) {
+                        setDialogState(() => _selectedLocationId = value);
+                      },
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -353,6 +411,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 _emailController.text,
                 _passwordController.text,
                 _selectedRole,
+                _selectedLocationId,
               ),
               child: Text(user == null ? 'Add' : 'Update'),
             ),
@@ -368,6 +427,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
     String email,
     String password,
     UserRole role,
+    String? locationId,
   ) async {
     if (name.isEmpty || email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -388,25 +448,31 @@ class _UserManagementPageState extends State<UserManagementPage> {
     try {
       if (existingUser == null) {
         // Create new user
-        final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: email,
-          password: password,
+        final credential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(email: email, password: password);
+
+        await UserService.createUser(
+          credential.user!.uid,
+          email,
+          password,
+          name,
+          role,
+          locationId, // Tambahkan locationId parameter
         );
-        
-        await UserService.createUser(credential.user!.uid, email, name, role);
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('User created successfully')),
         );
       } else {
         // Update existing user
         final updatedUser = existingUser.copyWith(
-          name: name,
-          role: role,
+          name: name, 
+          role: role, 
+          locationId: locationId,
         );
-        
+
         await UserService.updateUser(existingUser.id, updatedUser);
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('User updated successfully')),
         );
@@ -441,7 +507,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
   void _deleteUser(UserModel user) async {
     Navigator.pop(context);
-    
+
     try {
       await UserService.deleteUser(user.id);
       ScaffoldMessenger.of(context).showSnackBar(
