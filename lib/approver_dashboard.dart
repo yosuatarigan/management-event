@@ -291,29 +291,7 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildMenuCard(
-                              icon: Icons.receipt_outlined,
-                              title: 'Approval Nota',
-                              subtitle: 'Setujui nota pembayaran',
-                              color: Colors.purple,
-                              pendingCount: notaPending,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ApprovalNotaPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          Expanded(child: Container()), // Empty space for 2x2 grid with 3 items
-                        ],
-                      ),
+                     
                     ],
                   ),
                 ),

@@ -15,7 +15,6 @@ class NotaPage extends StatefulWidget {
 
 class _NotaPageState extends State<NotaPage> {
   final _searchController = TextEditingController();
-  StatusNota? _selectedStatusFilter;
   String _searchQuery = '';
 
   @override
@@ -34,43 +33,25 @@ class _NotaPageState extends State<NotaPage> {
       ),
       body: Column(
         children: [
-          // Search and Filter Section
+          // Search Section
           Container(
             color: Theme.of(context).primaryColor.withOpacity(0.1),
             padding: EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Search Bar
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Cari nota...',
-                    prefixIcon: Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  onChanged: (value) {
-                    setState(() => _searchQuery = value.toLowerCase());
-                  },
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Cari nota...',
+                prefixIcon: Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
                 ),
-                SizedBox(height: 12),
-                
-                // Status Filter
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildStatusFilterChip(null, 'Semua'),
-                      ...StatusNota.values.map((status) => 
-                        _buildStatusFilterChip(status, status.statusDisplayName)),
-                    ],
-                  ),
-                ),
-              ],
+              ),
+              onChanged: (value) {
+                setState(() => _searchQuery = value.toLowerCase());
+              },
             ),
           ),
           
@@ -80,12 +61,7 @@ class _NotaPageState extends State<NotaPage> {
             builder: (context, snapshot) {
               if (snapshot.hasData) {
                 final notaList = snapshot.data!;
-                final totalPending = notaList
-                    .where((n) => n.status == StatusNota.pending)
-                    .fold<double>(0, (sum, n) => sum + n.nominal);
-                final totalApproved = notaList
-                    .where((n) => n.status == StatusNota.approved || n.status == StatusNota.reimbursed)
-                    .fold<double>(0, (sum, n) => sum + n.nominal);
+                final totalAmount = notaList.fold<double>(0, (sum, n) => sum + n.nominal);
 
                 return Container(
                   margin: EdgeInsets.all(16),
@@ -103,60 +79,46 @@ class _NotaPageState extends State<NotaPage> {
                   ),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Pending',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                            Text(
-                              'Rp ${totalPending.toStringAsFixed(0).replaceAllMapped(
-                                RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                                (Match match) => '${match[1]}.',
-                              )}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.orange,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        width: 1,
-                        height: 30,
-                        color: Colors.grey.shade300,
-                      ),
+                      Icon(Icons.receipt_long, color: Colors.orange, size: 24),
                       SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Approved',
+                              'Total Pengeluaran',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 14,
                                 color: Colors.grey.shade600,
                               ),
                             ),
+                            SizedBox(height: 4),
                             Text(
-                              'Rp ${totalApproved.toStringAsFixed(0).replaceAllMapped(
+                              'Rp ${totalAmount.toStringAsFixed(0).replaceAllMapped(
                                 RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
                                 (Match match) => '${match[1]}.',
                               )}',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                                color: Colors.orange.shade700,
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          '${notaList.length} nota',
+                          style: TextStyle(
+                            color: Colors.orange.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
@@ -199,32 +161,6 @@ class _NotaPageState extends State<NotaPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildStatusFilterChip(StatusNota? status, String label) {
-    final isSelected = _selectedStatusFilter == status;
-    final color = status?.statusColor ?? Colors.grey.shade600;
-    
-    return GestureDetector(
-      onTap: () => setState(() => _selectedStatusFilter = status),
-      child: Container(
-        margin: EdgeInsets.only(right: 8),
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? color : Colors.grey.shade300),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? color : Colors.grey.shade600,
-            fontWeight: FontWeight.w500,
-            fontSize: 12,
-          ),
-        ),
       ),
     );
   }
@@ -288,12 +224,12 @@ class _NotaPageState extends State<NotaPage> {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: nota.statusColor.withOpacity(0.1),
+                  color: Colors.orange.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.receipt,
-                  color: nota.statusColor,
+                  color: Colors.orange,
                   size: 24,
                 ),
               ),
@@ -307,29 +243,16 @@ class _NotaPageState extends State<NotaPage> {
                     // Header Row
                     Row(
                       children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: nota.statusColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(nota.statusIcon, size: 12, color: nota.statusColor),
-                              SizedBox(width: 4),
-                              Text(
-                                nota.statusDisplayName,
-                                style: TextStyle(
-                                  color: nota.statusColor,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                        Expanded(
+                          child: Text(
+                            nota.formattedNominal,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.grey.shade800,
+                            ),
                           ),
                         ),
-                        Spacer(),
                         Text(
                           nota.formattedTanggal,
                           style: TextStyle(
@@ -340,17 +263,6 @@ class _NotaPageState extends State<NotaPage> {
                       ],
                     ),
                     SizedBox(height: 8),
-                    
-                    // Amount
-                    Text(
-                      nota.formattedNominal,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.grey.shade800,
-                      ),
-                    ),
-                    SizedBox(height: 4),
                     
                     // Purpose
                     Text(
@@ -397,9 +309,7 @@ class _NotaPageState extends State<NotaPage> {
           nota.lokasiName.toLowerCase().contains(_searchQuery) ||
           nota.formattedNominal.toLowerCase().contains(_searchQuery);
       
-      final matchesStatus = _selectedStatusFilter == null || nota.status == _selectedStatusFilter;
-      
-      return matchesSearch && matchesStatus;
+      return matchesSearch;
     }).toList();
   }
 
@@ -428,48 +338,6 @@ class _NotaPageState extends State<NotaPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-}
-
-// Extension untuk menambah properti ke StatusNota
-extension StatusNotaExtension on StatusNota {
-  String get statusDisplayName {
-    switch (this) {
-      case StatusNota.pending:
-        return 'Pending';
-      case StatusNota.approved:
-        return 'Approved';
-      case StatusNota.rejected:
-        return 'Rejected';
-      case StatusNota.reimbursed:
-        return 'Reimbursed';
-    }
-  }
-
-  Color get statusColor {
-    switch (this) {
-      case StatusNota.pending:
-        return Colors.orange;
-      case StatusNota.approved:
-        return Colors.green;
-      case StatusNota.rejected:
-        return Colors.red;
-      case StatusNota.reimbursed:
-        return Colors.blue;
-    }
-  }
-
-  IconData get statusIcon {
-    switch (this) {
-      case StatusNota.pending:
-        return Icons.pending;
-      case StatusNota.approved:
-        return Icons.check_circle;
-      case StatusNota.rejected:
-        return Icons.cancel;
-      case StatusNota.reimbursed:
-        return Icons.account_balance_wallet;
-    }
   }
 }
 
@@ -875,32 +743,20 @@ class NotaDetailDialog extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: nota.statusColor.withOpacity(0.1),
+                color: Colors.orange.withOpacity(0.1),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: Row(
                 children: [
-                  Icon(nota.statusIcon, color: nota.statusColor),
+                  Icon(Icons.receipt_long, color: Colors.orange),
                   SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Detail Nota Pengeluaran',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          nota.statusDisplayName,
-                          style: TextStyle(
-                            color: nota.statusColor,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      'Detail Nota Pengeluaran',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -998,54 +854,6 @@ class NotaDetailDialog extends StatelessWidget {
                     _buildInfoItem('Keperluan', nota.keperluan),
                     SizedBox(height: 16),
                     _buildInfoItem('Dibuat', nota.formattedDate),
-                    
-                    // Approval info
-                    if (nota.status != StatusNota.pending) ...[
-                      SizedBox(height: 16),
-                      _buildInfoItem('Disetujui oleh', nota.approverName ?? 'N/A'),
-                      SizedBox(height: 16),
-                      _buildInfoItem('Tanggal persetujuan', 
-                          nota.approvedAt != null 
-                              ? '${nota.approvedAt!.day}/${nota.approvedAt!.month}/${nota.approvedAt!.year}'
-                              : 'N/A'),
-                    ],
-
-                    // Rejection reason
-                    if (nota.status == StatusNota.rejected && nota.rejectionReason != null) ...[
-                      SizedBox(height: 20),
-                      Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red.shade200),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.cancel, color: Colors.red.shade600, size: 20),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Alasan Penolakan:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red.shade700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              nota.rejectionReason!,
-                              style: TextStyle(color: Colors.red.shade700),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
