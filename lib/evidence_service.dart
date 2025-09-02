@@ -7,16 +7,36 @@ import 'evidence_model.dart';
 class EvidenceService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseStorage _storage = FirebaseStorage.instance;
-  static final CollectionReference _evidenceCollection = _firestore.collection('evidence');
+  static final CollectionReference _evidenceCollection = _firestore.collection(
+    'evidence',
+  );
 
   // Get all evidence
+  /// Get ALL evidence from all users for the monitor page.
   static Stream<List<EvidenceModel>> getAllEvidence() {
     return _evidenceCollection
         .orderBy('created_at', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => EvidenceModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-            .toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs
+                  .map(
+                    (doc) => EvidenceModel.fromMap(
+                      doc.data() as Map<String, dynamic>,
+                      doc.id,
+                    ),
+                  )
+                  .toList(),
+        );
+  }
+
+  static Future<void> updateEvidenceStatus(
+    String evidenceId,
+    StatusEvidence newStatus,
+  ) async {
+    await _evidenceCollection.doc(evidenceId).update({
+      'status': newStatus.toString().split('.').last,
+    });
   }
 
   // Get evidence by uploader
@@ -25,31 +45,59 @@ class EvidenceService {
         .where('uploaded_by', isEqualTo: uploaderId)
         .orderBy('created_at', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => EvidenceModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-            .toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs
+                  .map(
+                    (doc) => EvidenceModel.fromMap(
+                      doc.data() as Map<String, dynamic>,
+                      doc.id,
+                    ),
+                  )
+                  .toList(),
+        );
   }
 
   // Get evidence by status
-  static Stream<List<EvidenceModel>> getEvidenceByStatus(StatusEvidence status) {
+  static Stream<List<EvidenceModel>> getEvidenceByStatus(
+    StatusEvidence status,
+  ) {
     return _evidenceCollection
         .where('status', isEqualTo: status.toString().split('.').last)
         .orderBy('created_at', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => EvidenceModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-            .toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs
+                  .map(
+                    (doc) => EvidenceModel.fromMap(
+                      doc.data() as Map<String, dynamic>,
+                      doc.id,
+                    ),
+                  )
+                  .toList(),
+        );
   }
 
   // Get evidence by kategori
-  static Stream<List<EvidenceModel>> getEvidenceByKategori(KategoriEvidence kategori) {
+  static Stream<List<EvidenceModel>> getEvidenceByKategori(
+    KategoriEvidence kategori,
+  ) {
     return _evidenceCollection
         .where('kategori', isEqualTo: kategori.toString().split('.').last)
         .orderBy('created_at', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => EvidenceModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-            .toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs
+                  .map(
+                    (doc) => EvidenceModel.fromMap(
+                      doc.data() as Map<String, dynamic>,
+                      doc.id,
+                    ),
+                  )
+                  .toList(),
+        );
   }
 
   // Create evidence
@@ -71,7 +119,7 @@ class EvidenceService {
     if (doc.exists) {
       final data = doc.data() as Map<String, dynamic>;
       final fileUrl = data['file_url'] as String?;
-      
+
       // Delete file from storage
       if (fileUrl != null && fileUrl.isNotEmpty) {
         try {
@@ -81,7 +129,7 @@ class EvidenceService {
         }
       }
     }
-    
+
     await _evidenceCollection.doc(id).delete();
   }
 
@@ -94,12 +142,16 @@ class EvidenceService {
   }
 
   // Upload file to Firebase Storage
-  static Future<String> uploadFile(File file, String evidenceId, KategoriEvidence kategori) async {
+  static Future<String> uploadFile(
+    File file,
+    String evidenceId,
+    KategoriEvidence kategori,
+  ) async {
     try {
       final String fileName = DateTime.now().millisecondsSinceEpoch.toString();
       final String extension = file.path.split('.').last.toLowerCase();
       final String fullFileName = '${fileName}.$extension';
-      
+
       final Reference ref = _storage
           .ref()
           .child('evidence')
@@ -110,7 +162,7 @@ class EvidenceService {
       final UploadTask uploadTask = ref.putFile(file);
       final TaskSnapshot snapshot = await uploadTask;
       final String downloadUrl = await snapshot.ref.getDownloadURL();
-      
+
       return downloadUrl;
     } catch (e) {
       throw Exception('Error uploading file: $e');
@@ -118,7 +170,10 @@ class EvidenceService {
   }
 
   // Approve evidence
-  static Future<void> approveEvidence(String evidenceId, String approverId) async {
+  static Future<void> approveEvidence(
+    String evidenceId,
+    String approverId,
+  ) async {
     await _evidenceCollection.doc(evidenceId).update({
       'status': StatusEvidence.approved.toString().split('.').last,
       'approved_by': approverId,
@@ -127,7 +182,11 @@ class EvidenceService {
   }
 
   // Reject evidence
-  static Future<void> rejectEvidence(String evidenceId, String approverId, String reason) async {
+  static Future<void> rejectEvidence(
+    String evidenceId,
+    String approverId,
+    String reason,
+  ) async {
     await _evidenceCollection.doc(evidenceId).update({
       'status': StatusEvidence.rejected.toString().split('.').last,
       'approved_by': approverId,
@@ -148,13 +207,22 @@ class EvidenceService {
   // Get statistics
   static Future<Map<String, dynamic>> getEvidenceStats() async {
     final allDocs = await _evidenceCollection.get();
-    final pendingDocs = await _evidenceCollection.where('status', isEqualTo: 'pending').get();
-    final approvedDocs = await _evidenceCollection.where('status', isEqualTo: 'approved').get();
-    final rejectedDocs = await _evidenceCollection.where('status', isEqualTo: 'rejected').get();
+    final pendingDocs =
+        await _evidenceCollection.where('status', isEqualTo: 'pending').get();
+    final approvedDocs =
+        await _evidenceCollection.where('status', isEqualTo: 'approved').get();
+    final rejectedDocs =
+        await _evidenceCollection.where('status', isEqualTo: 'rejected').get();
 
-    final evidenceList = allDocs.docs
-        .map((doc) => EvidenceModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-        .toList();
+    final evidenceList =
+        allDocs.docs
+            .map(
+              (doc) => EvidenceModel.fromMap(
+                doc.data() as Map<String, dynamic>,
+                doc.id,
+              ),
+            )
+            .toList();
 
     final kategoriStats = <String, int>{};
     final lokasiStats = <String, int>{};
@@ -196,14 +264,23 @@ class EvidenceService {
   // Validate file type based on kategori
   static bool isValidFileType(File file, KategoriEvidence kategori) {
     final extension = file.path.split('.').last.toLowerCase();
-    
+
     switch (kategori) {
       case KategoriEvidence.foto:
         return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].contains(extension);
       case KategoriEvidence.video:
         return ['mp4', 'avi', 'mov', 'mkv', '3gp', 'webm'].contains(extension);
       case KategoriEvidence.dokumen:
-        return ['pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx', 'ppt', 'pptx'].contains(extension);
+        return [
+          'pdf',
+          'doc',
+          'docx',
+          'txt',
+          'xls',
+          'xlsx',
+          'ppt',
+          'pptx',
+        ].contains(extension);
       case KategoriEvidence.lainnya:
         return true; // Allow any file type
     }

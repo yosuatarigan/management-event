@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:management_event/evidence_monitor_page.dart';
 import 'user_management_page.dart';
 import 'location_management_page.dart';
 import 'user_service.dart';
@@ -33,18 +34,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
     try {
       await FirebaseAuth.instance.signOut();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error signing out')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error signing out')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -130,16 +129,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       SizedBox(height: 10),
                       Text(
                         currentUser?.email ?? '',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                        ),
+                        style: TextStyle(color: Colors.grey.shade600),
                       ),
                     ],
                   ),
                 ),
-                
+
                 SizedBox(height: 30),
-                
+
                 Text(
                   'Event Management',
                   style: TextStyle(
@@ -148,9 +145,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     color: Colors.grey.shade800,
                   ),
                 ),
-                
+
                 SizedBox(height: 16),
-                
+
                 // Management Menu
                 Expanded(
                   child: GridView.count(
@@ -182,6 +179,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => LocationManagementPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildMenuCard(
+                        icon: Icons.document_scanner,
+                        title: 'Kelola Evidence',
+                        subtitle: 'Atur bukti & dokumen event',
+                        color: Colors.orange,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AdminEvidencePage(),
                             ),
                           );
                         },
@@ -274,11 +285,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 32,
-                ),
+                child: Icon(icon, color: color, size: 32),
               ),
               SizedBox(height: 12),
               Text(
@@ -293,10 +300,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               SizedBox(height: 4),
               Text(
                 subtitle,
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
                 textAlign: TextAlign.center,
               ),
             ],
