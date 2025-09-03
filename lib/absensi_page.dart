@@ -38,336 +38,360 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = screenWidth > 768;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Absensi'),
+        title: Text(
+          'Absensi',
+          style: TextStyle(
+            fontSize: isWeb ? 20 : 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         elevation: 0,
+        centerTitle: !isWeb,
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-            Tab(icon: Icon(Icons.today), text: 'Hari Ini'),
-            Tab(icon: Icon(Icons.history), text: 'Riwayat'),
+            Tab(
+              icon: Icon(Icons.today),
+              text: 'Hari Ini',
+              iconMargin: EdgeInsets.only(bottom: isWeb ? 8 : 4),
+            ),
+            Tab(
+              icon: Icon(Icons.history),
+              text: 'Riwayat',
+              iconMargin: EdgeInsets.only(bottom: isWeb ? 8 : 4),
+            ),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildTodayTab(),
-          _buildHistoryTab(),
+          _buildTodayTab(isWeb),
+          _buildHistoryTab(isWeb),
         ],
       ),
     );
   }
 
-  Widget _buildTodayTab() {
+  Widget _buildTodayTab(bool isWeb) {
     return Column(
       children: [
         // Date Selector & Stats
         Container(
           color: Theme.of(context).primaryColor.withOpacity(0.1),
-          padding: EdgeInsets.all(16),
-          child: Column(
-            children: [
-              // Date Picker
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: InkWell(
-                  onTap: _selectDate,
-                  child: Row(
-                    children: [
-                      Icon(Icons.calendar_today, color: Colors.purple),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Tanggal Absensi',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                            Text(
-                              '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
+          padding: EdgeInsets.all(isWeb ? 24 : 16),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: isWeb ? 1200 : double.infinity),
+              child: Column(
+                children: [
+                  // Date Picker
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(isWeb ? 16 : 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          blurRadius: isWeb ? 8 : 4,
+                          offset: Offset(0, 2),
                         ),
-                      ),
-                      Icon(Icons.arrow_drop_down),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 16),
-              
-              // Stats Grid
-              Row(
-                children: [
-                  Expanded(child: _buildStatCard('Hadir', _todayStats['hadir'] ?? 0, Colors.green)),
-                  SizedBox(width: 8),
-                  Expanded(child: _buildStatCard('Izin', _todayStats['izin'] ?? 0, Colors.blue)),
-                  SizedBox(width: 8),
-                  Expanded(child: _buildStatCard('Sakit', _todayStats['sakit'] ?? 0, Colors.orange)),
-                  SizedBox(width: 8),
-                  Expanded(child: _buildStatCard('Alpha', _todayStats['alpha'] ?? 0, Colors.red)),
-                ],
-              ),
-              SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
+                      ],
+                    ),
+                    child: InkWell(
+                      onTap: _selectDate,
+                      borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
+                      child: Row(
                         children: [
-                          Text(
-                            'Total Bawahan',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey.shade600,
+                          Container(
+                            padding: EdgeInsets.all(isWeb ? 12 : 8),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            '${_todayStats['total_bawahan'] ?? 0}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                            child: Icon(
+                              Icons.calendar_today, 
                               color: Colors.purple,
+                              size: isWeb ? 24 : 20,
                             ),
+                          ),
+                          SizedBox(width: isWeb ? 16 : 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Tanggal Absensi',
+                                  style: TextStyle(
+                                    fontSize: isWeb ? 14 : 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                                  style: TextStyle(
+                                    fontSize: isWeb ? 18 : 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            size: isWeb ? 28 : 24,
                           ),
                         ],
                       ),
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Container(
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            'Belum Absen',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            '${_todayStats['belum_absen'] ?? 0}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  SizedBox(height: isWeb ? 20 : 16),
+                  
+                  // Stats Grid
+                  _buildStatsGrid(isWeb),
                 ],
-              ),
-            ],
-          ),
-        ),
-        
-        // Action Button
-        if ((_todayStats['belum_absen'] ?? 0) > 0)
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(16),
-            child: ElevatedButton.icon(
-              onPressed: _showBulkAbsensiDialog,
-              icon: Icon(Icons.group_add),
-              label: Text('Absensi Massal'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
-                foregroundColor: Colors.white,
-                minimumSize: Size(0, 45),
               ),
             ),
           ),
+        ),
         
-        // Bawahan List
+        // Content
         Expanded(
-          child: StreamBuilder<List<UserModel>>(
-            stream: AbsensiService.getAllBawahan(),
-            builder: (context, bawahanSnapshot) {
-              if (bawahanSnapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
-
-              if (bawahanSnapshot.hasError) {
-                return Center(child: Text('Error: ${bawahanSnapshot.error}'));
-              }
-
-              final bawahanList = bawahanSnapshot.data ?? [];
-
-              if (bawahanList.isEmpty) {
-                return _buildEmptyBawahanState();
-              }
-
-              return StreamBuilder<List<AbsensiModel>>(
-                stream: AbsensiService.getAbsensiByDate(
-                  _selectedDate,
-                  FirebaseAuth.instance.currentUser?.uid ?? '',
-                ),
-                builder: (context, absensiSnapshot) {
-                  final absensiList = absensiSnapshot.data ?? [];
-                  final Map<String, AbsensiModel> absensiMap = {};
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: isWeb ? 1200 : double.infinity),
+              child: Column(
+                children: [
+                  // Action Button
+                  if ((_todayStats['belum_absen'] ?? 0) > 0)
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(isWeb ? 24 : 16),
+                      child: ElevatedButton.icon(
+                        onPressed: _showBulkAbsensiDialog,
+                        icon: Icon(Icons.group_add),
+                        label: Text(
+                          'Absensi Massal',
+                          style: TextStyle(fontSize: isWeb ? 16 : 14),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                          foregroundColor: Colors.white,
+                          minimumSize: Size(0, isWeb ? 50 : 45),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isWeb ? 24 : 16,
+                            vertical: isWeb ? 16 : 12,
+                          ),
+                        ),
+                      ),
+                    ),
                   
-                  for (final absensi in absensiList) {
-                    absensiMap[absensi.bawahanId] = absensi;
-                  }
-
-                  return ListView.builder(
-                    padding: EdgeInsets.all(16),
-                    itemCount: bawahanList.length,
-                    itemBuilder: (context, index) {
-                      final bawahan = bawahanList[index];
-                      final absensi = absensiMap[bawahan.id];
-                      return _buildBawahanCard(bawahan, absensi);
-                    },
-                  );
-                },
-              );
-            },
+                  // Bawahan List
+                  Expanded(
+                    child: _buildBawahanList(isWeb),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildHistoryTab() {
-    return Column(
-      children: [
-        // Filter Section
-        // Container(
-        //   padding: EdgeInsets.all(16),
-        //   child: Row(
-        //     children: [
-        //       Expanded(
-        //         child: ElevatedButton.icon(
-        //           onPressed: _showMonthlyReport,
-        //           icon: Icon(Icons.bar_chart),
-        //           label: Text('Laporan Bulanan'),
-        //           style: ElevatedButton.styleFrom(
-        //             backgroundColor: Colors.blue,
-        //             foregroundColor: Colors.white,
-        //           ),
-        //         ),
-        //       ),
-        //       SizedBox(width: 12),
-        //       Expanded(
-        //         child: ElevatedButton.icon(
-        //           onPressed: _showDetailHistory,
-        //           icon: Icon(Icons.history),
-        //           label: Text('Riwayat Detail'),
-        //           style: ElevatedButton.styleFrom(
-        //             backgroundColor: Colors.green,
-        //             foregroundColor: Colors.white,
-        //           ),
-        //         ),
-        //       ),
-        //     ],
-        //   ),
-        // ),
-        
-        // Recent History
-        Expanded(
-          child: StreamBuilder<List<AbsensiModel>>(
-            stream: AbsensiService.getCurrentCoordinatorAbsensi(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
+  Widget _buildStatsGrid(bool isWeb) {
+    if (isWeb) {
+      // Single row for web
+      return Row(
+        children: [
+          Expanded(child: _buildStatCard('Hadir', _todayStats['hadir'] ?? 0, Colors.green, isWeb)),
+          SizedBox(width: 12),
+          Expanded(child: _buildStatCard('Izin', _todayStats['izin'] ?? 0, Colors.blue, isWeb)),
+          SizedBox(width: 12),
+          Expanded(child: _buildStatCard('Sakit', _todayStats['sakit'] ?? 0, Colors.orange, isWeb)),
+          SizedBox(width: 12),
+          Expanded(child: _buildStatCard('Alpha', _todayStats['alpha'] ?? 0, Colors.red, isWeb)),
+          SizedBox(width: 12),
+          Expanded(child: _buildStatCard('Total', _todayStats['total_bawahan'] ?? 0, Colors.purple, isWeb)),
+          SizedBox(width: 12),
+          Expanded(child: _buildStatCard('Belum', _todayStats['belum_absen'] ?? 0, Colors.grey, isWeb)),
+        ],
+      );
+    } else {
+      // Two rows for mobile
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: _buildStatCard('Hadir', _todayStats['hadir'] ?? 0, Colors.green, isWeb)),
+              SizedBox(width: 8),
+              Expanded(child: _buildStatCard('Izin', _todayStats['izin'] ?? 0, Colors.blue, isWeb)),
+              SizedBox(width: 8),
+              Expanded(child: _buildStatCard('Sakit', _todayStats['sakit'] ?? 0, Colors.orange, isWeb)),
+              SizedBox(width: 8),
+              Expanded(child: _buildStatCard('Alpha', _todayStats['alpha'] ?? 0, Colors.red, isWeb)),
+            ],
+          ),
+          SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard('Total Bawahan', _todayStats['total_bawahan'] ?? 0, Colors.purple, isWeb),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: _buildStatCard('Belum Absen', _todayStats['belum_absen'] ?? 0, Colors.grey, isWeb),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+  }
 
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
+  Widget _buildBawahanList(bool isWeb) {
+    return StreamBuilder<List<UserModel>>(
+      stream: AbsensiService.getAllBawahan(),
+      builder: (context, bawahanSnapshot) {
+        if (bawahanSnapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
 
-              final recentAbsensi = (snapshot.data ?? [])
-                  .take(20)
-                  .toList(); // Show last 20 records
+        if (bawahanSnapshot.hasError) {
+          return Center(child: Text('Error: ${bawahanSnapshot.error}'));
+        }
 
-              if (recentAbsensi.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.history, size: 64, color: Colors.grey.shade400),
-                      SizedBox(height: 16),
-                      Text('Belum ada riwayat absensi'),
-                    ],
-                  ),
-                );
-              }
+        final bawahanList = bawahanSnapshot.data ?? [];
 
+        if (bawahanList.isEmpty) {
+          return _buildEmptyBawahanState(isWeb);
+        }
+
+        return StreamBuilder<List<AbsensiModel>>(
+          stream: AbsensiService.getAbsensiByDate(
+            _selectedDate,
+            FirebaseAuth.instance.currentUser?.uid ?? '',
+          ),
+          builder: (context, absensiSnapshot) {
+            final absensiList = absensiSnapshot.data ?? [];
+            final Map<String, AbsensiModel> absensiMap = {};
+            
+            for (final absensi in absensiList) {
+              absensiMap[absensi.bawahanId] = absensi;
+            }
+
+            if (isWeb) {
+              // Grid layout for web
+              return GridView.builder(
+                padding: EdgeInsets.all(24),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 20,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 2.8,
+                ),
+                itemCount: bawahanList.length,
+                itemBuilder: (context, index) {
+                  final bawahan = bawahanList[index];
+                  final absensi = absensiMap[bawahan.id];
+                  return _buildBawahanCard(bawahan, absensi, isWeb);
+                },
+              );
+            } else {
+              // List layout for mobile
               return ListView.builder(
                 padding: EdgeInsets.all(16),
-                itemCount: recentAbsensi.length,
+                itemCount: bawahanList.length,
                 itemBuilder: (context, index) {
-                  return _buildHistoryCard(recentAbsensi[index]);
+                  final bawahan = bawahanList[index];
+                  final absensi = absensiMap[bawahan.id];
+                  return _buildBawahanCard(bawahan, absensi, isWeb);
                 },
               );
-            },
-          ),
-        ),
-      ],
+            }
+          },
+        );
+      },
     );
   }
 
-  Widget _buildStatCard(String title, int count, Color color) {
+  Widget _buildHistoryTab(bool isWeb) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: isWeb ? 1200 : double.infinity),
+        child: StreamBuilder<List<AbsensiModel>>(
+          stream: AbsensiService.getCurrentCoordinatorAbsensi(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+
+            final recentAbsensi = (snapshot.data ?? [])
+                .take(20)
+                .toList();
+
+            if (recentAbsensi.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.history, 
+                      size: isWeb ? 80 : 64, 
+                      color: Colors.grey.shade400,
+                    ),
+                    SizedBox(height: isWeb ? 24 : 16),
+                    Text(
+                      'Belum ada riwayat absensi',
+                      style: TextStyle(
+                        fontSize: isWeb ? 20 : 16,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: EdgeInsets.all(isWeb ? 24 : 16),
+              itemCount: recentAbsensi.length,
+              itemBuilder: (context, index) {
+                return _buildHistoryCard(recentAbsensi[index], isWeb);
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, int count, Color color, bool isWeb) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: EdgeInsets.symmetric(
+        vertical: isWeb ? 16 : 12,
+        horizontal: isWeb ? 12 : 8,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
-            blurRadius: 4,
+            blurRadius: isWeb ? 8 : 4,
             offset: Offset(0, 2),
           ),
         ],
@@ -377,40 +401,42 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
           Text(
             '$count',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: isWeb ? 24 : 20,
               fontWeight: FontWeight.bold,
               color: color,
             ),
           ),
-          SizedBox(height: 4),
+          SizedBox(height: isWeb ? 6 : 4),
           Text(
             title,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: isWeb ? 12 : 10,
               color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyBawahanState() {
+  Widget _buildEmptyBawahanState(bool isWeb) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.people_outline,
-            size: 64,
+            size: isWeb ? 80 : 64,
             color: Colors.grey.shade400,
           ),
-          SizedBox(height: 16),
+          SizedBox(height: isWeb ? 24 : 16),
           Text(
             'Tidak ada bawahan terdaftar',
             style: TextStyle(
               color: Colors.grey.shade600,
-              fontSize: 16,
+              fontSize: isWeb ? 20 : 16,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -419,6 +445,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
             'Hubungi admin untuk menambah bawahan',
             style: TextStyle(
               color: Colors.grey.shade500,
+              fontSize: isWeb ? 16 : 14,
             ),
           ),
         ],
@@ -426,27 +453,31 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildBawahanCard(UserModel bawahan, AbsensiModel? absensi) {
+  Widget _buildBawahanCard(UserModel bawahan, AbsensiModel? absensi, bool isWeb) {
     return Card(
-      margin: EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: isWeb ? EdgeInsets.zero : EdgeInsets.only(bottom: 12),
+      elevation: isWeb ? 4 : 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
+      ),
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.all(isWeb ? 20 : 16),
         child: Row(
           children: [
             // Avatar
             CircleAvatar(
               backgroundColor: Colors.purple.shade100,
+              radius: isWeb ? 24 : 20,
               child: Text(
                 bawahan.name.isNotEmpty ? bawahan.name[0].toUpperCase() : 'B',
                 style: TextStyle(
                   color: Colors.purple.shade600,
                   fontWeight: FontWeight.bold,
+                  fontSize: isWeb ? 18 : 14,
                 ),
               ),
             ),
-            SizedBox(width: 12),
+            SizedBox(width: isWeb ? 16 : 12),
             
             // Info
             Expanded(
@@ -457,35 +488,42 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
                     bawahan.name,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: isWeb ? 18 : 16,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: isWeb ? 6 : 4),
                   Text(
                     bawahan.email,
                     style: TextStyle(
                       color: Colors.grey.shade600,
-                      fontSize: 12,
+                      fontSize: isWeb ? 14 : 12,
                     ),
                   ),
                   if (absensi != null) ...[
-                    SizedBox(height: 8),
+                    SizedBox(height: isWeb ? 12 : 8),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isWeb ? 12 : 8,
+                        vertical: isWeb ? 6 : 4,
+                      ),
                       decoration: BoxDecoration(
                         color: absensi.statusColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(absensi.statusIcon, size: 14, color: absensi.statusColor),
+                          Icon(
+                            absensi.statusIcon, 
+                            size: isWeb ? 16 : 14, 
+                            color: absensi.statusColor,
+                          ),
                           SizedBox(width: 4),
                           Text(
                             absensi.statusDisplayName,
                             style: TextStyle(
                               color: absensi.statusColor,
-                              fontSize: 12,
+                              fontSize: isWeb ? 14 : 12,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -498,7 +536,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
                         absensi.keterangan!,
                         style: TextStyle(
                           color: Colors.grey.shade600,
-                          fontSize: 11,
+                          fontSize: isWeb ? 13 : 11,
                           fontStyle: FontStyle.italic,
                         ),
                         maxLines: 1,
@@ -514,17 +552,28 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
             if (absensi == null)
               ElevatedButton(
                 onPressed: () => _showAbsensiDialog(bawahan),
-                child: Text('Absen', style: TextStyle(fontSize: 12)),
+                child: Text(
+                  'Absen', 
+                  style: TextStyle(fontSize: isWeb ? 14 : 12),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.purple,
                   foregroundColor: Colors.white,
-                  minimumSize: Size(60, 30),
+                  minimumSize: Size(isWeb ? 80 : 60, isWeb ? 36 : 30),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isWeb ? 16 : 12,
+                    vertical: isWeb ? 8 : 4,
+                  ),
                 ),
               )
             else
               IconButton(
                 onPressed: () => _showAbsensiDialog(bawahan, absensi),
-                icon: Icon(Icons.edit, color: Colors.grey.shade600),
+                icon: Icon(
+                  Icons.edit, 
+                  color: Colors.grey.shade600,
+                  size: isWeb ? 24 : 20,
+                ),
                 tooltip: 'Edit Absensi',
               ),
           ],
@@ -533,24 +582,46 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildHistoryCard(AbsensiModel absensi) {
+  Widget _buildHistoryCard(AbsensiModel absensi, bool isWeb) {
     return Card(
-      margin: EdgeInsets.only(bottom: 8),
+      margin: EdgeInsets.only(bottom: isWeb ? 12 : 8),
+      elevation: isWeb ? 3 : 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
+      ),
       child: ListTile(
+        contentPadding: EdgeInsets.all(isWeb ? 20 : 16),
         leading: CircleAvatar(
           backgroundColor: absensi.statusColor.withOpacity(0.1),
-          child: Icon(absensi.statusIcon, color: absensi.statusColor, size: 20),
+          radius: isWeb ? 24 : 20,
+          child: Icon(
+            absensi.statusIcon, 
+            color: absensi.statusColor, 
+            size: isWeb ? 24 : 20,
+          ),
         ),
         title: Text(
           absensi.bawahanName,
-          style: TextStyle(fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: isWeb ? 16 : 14,
+          ),
         ),
-        subtitle: Text(
-          '${absensi.formattedTanggal} - ${absensi.lokasiName}',
-          style: TextStyle(fontSize: 12),
+        subtitle: Padding(
+          padding: EdgeInsets.only(top: 4),
+          child: Text(
+            '${absensi.formattedTanggal} - ${absensi.lokasiName}',
+            style: TextStyle(
+              fontSize: isWeb ? 14 : 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
         ),
         trailing: Container(
-          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: isWeb ? 12 : 8,
+            vertical: isWeb ? 6 : 4,
+          ),
           decoration: BoxDecoration(
             color: absensi.statusColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
@@ -559,7 +630,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
             absensi.statusDisplayName,
             style: TextStyle(
               color: absensi.statusColor,
-              fontSize: 11,
+              fontSize: isWeb ? 12 : 11,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -583,6 +654,9 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
   }
 
   void _showAbsensiDialog(UserModel bawahan, [AbsensiModel? existingAbsensi]) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = screenWidth > 768;
+
     StatusAbsensi selectedStatus = existingAbsensi?.status ?? StatusAbsensi.hadir;
     final keteranganController = TextEditingController(text: existingAbsensi?.keterangan ?? '');
     String selectedLokasiId = '';
@@ -591,101 +665,195 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(existingAbsensi == null ? 'Absensi ${bawahan.name}' : 'Edit Absensi'),
-          content: SingleChildScrollView(
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(isWeb ? 20 : 16),
+          ),
+          child: Container(
+            width: isWeb ? 500 : null,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * (isWeb ? 0.8 : 0.85),
+              maxWidth: isWeb ? 500 : double.infinity,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Lokasi dropdown
-                StreamBuilder<List<LocationModel>>(
-                  stream: LocationService.getAllLocations(),
-                  builder: (context, snapshot) {
-                    final locations = snapshot.data ?? [];
-                    
-                    return DropdownButtonFormField<String>(
-                      value: selectedLokasiId.isEmpty ? null : selectedLokasiId,
-                      decoration: InputDecoration(
-                        labelText: 'Lokasi *',
-                        border: OutlineInputBorder(),
+                // Header
+                Container(
+                  padding: EdgeInsets.all(isWeb ? 24 : 20),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.1),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(isWeb ? 20 : 16),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.how_to_reg, 
+                        color: Colors.purple,
+                        size: isWeb ? 24 : 20,
                       ),
-                      items: locations.map((location) {
-                        return DropdownMenuItem(
-                          value: location.id,
-                          child: Text('${location.name} - ${location.city}'),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          final selectedLocation = locations.firstWhere((loc) => loc.id == value);
-                          setDialogState(() {
-                            selectedLokasiId = value;
-                            selectedLokasiName = selectedLocation.name;
-                          });
-                        }
-                      },
-                    );
-                  },
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          existingAbsensi == null ? 'Absensi ${bawahan.name}' : 'Edit Absensi',
+                          style: TextStyle(
+                            fontSize: isWeb ? 20 : 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.close, size: isWeb ? 24 : 20),
+                      ),
+                    ],
+                  ),
                 ),
-                SizedBox(height: 16),
-                
-                // Status options
-                ...StatusAbsensi.values.map((status) {
-                  return RadioListTile<StatusAbsensi>(
-                    title: Row(
+
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(isWeb ? 24 : 20),
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(status.statusIcon, color: status.statusColor, size: 20),
-                        SizedBox(width: 8),
-                        Text(status.statusDisplayName),
+                        // Lokasi dropdown
+                        StreamBuilder<List<LocationModel>>(
+                          stream: LocationService.getAllLocations(),
+                          builder: (context, snapshot) {
+                            final locations = snapshot.data ?? [];
+                            
+                            return DropdownButtonFormField<String>(
+                              value: selectedLokasiId.isEmpty ? null : selectedLokasiId,
+                              decoration: InputDecoration(
+                                labelText: 'Lokasi *',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              items: locations.map((location) {
+                                return DropdownMenuItem(
+                                  value: location.id,
+                                  child: Text('${location.name} - ${location.city}'),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  final selectedLocation = locations.firstWhere((loc) => loc.id == value);
+                                  setDialogState(() {
+                                    selectedLokasiId = value;
+                                    selectedLokasiName = selectedLocation.name;
+                                  });
+                                }
+                              },
+                            );
+                          },
+                        ),
+                        SizedBox(height: isWeb ? 20 : 16),
+                        
+                        // Status options
+                        Text(
+                          'Status Kehadiran:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: isWeb ? 16 : 14,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        ...StatusAbsensi.values.map((status) {
+                          return RadioListTile<StatusAbsensi>(
+                            contentPadding: EdgeInsets.symmetric(horizontal: 0),
+                            title: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  status.statusIcon, 
+                                  color: status.statusColor, 
+                                  size: isWeb ? 22 : 20,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  status.statusDisplayName,
+                                  style: TextStyle(fontSize: isWeb ? 16 : 14),
+                                ),
+                              ],
+                            ),
+                            value: status,
+                            groupValue: selectedStatus,
+                            onChanged: (value) {
+                              if (value != null) {
+                                setDialogState(() => selectedStatus = value);
+                              }
+                            },
+                          );
+                        }),
+                        
+                        SizedBox(height: isWeb ? 20 : 16),
+                        
+                        // Keterangan
+                        TextField(
+                          controller: keteranganController,
+                          decoration: InputDecoration(
+                            labelText: 'Keterangan (Opsional)',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            hintText: 'Tambahkan keterangan jika diperlukan...',
+                          ),
+                          maxLines: 2,
+                        ),
                       ],
                     ),
-                    value: status,
-                    groupValue: selectedStatus,
-                    onChanged: (value) {
-                      if (value != null) {
-                        setDialogState(() => selectedStatus = value);
-                      }
-                    },
-                  );
-                }),
-                
-                SizedBox(height: 16),
-                
-                // Keterangan
-                TextField(
-                  controller: keteranganController,
-                  decoration: InputDecoration(
-                    labelText: 'Keterangan (Opsional)',
-                    border: OutlineInputBorder(),
-                    hintText: 'Tambahkan keterangan jika diperlukan...',
                   ),
-                  maxLines: 2,
+                ),
+
+                // Actions
+                Container(
+                  padding: EdgeInsets.all(isWeb ? 24 : 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            'Batal',
+                            style: TextStyle(fontSize: isWeb ? 16 : 14),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 12),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: selectedLokasiId.isEmpty ? null : () => _saveAbsensi(
+                            bawahan,
+                            selectedStatus,
+                            keteranganController.text.trim(),
+                            selectedLokasiId,
+                            selectedLokasiName,
+                            existingAbsensi,
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purple,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 12),
+                          ),
+                          child: Text(
+                            existingAbsensi == null ? 'Simpan' : 'Update',
+                            style: TextStyle(fontSize: isWeb ? 16 : 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: selectedLokasiId.isEmpty ? null : () => _saveAbsensi(
-                bawahan,
-                selectedStatus,
-                keteranganController.text.trim(),
-                selectedLokasiId,
-                selectedLokasiName,
-                existingAbsensi,
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
-                foregroundColor: Colors.white,
-              ),
-              child: Text(existingAbsensi == null ? 'Simpan' : 'Update'),
-            ),
-          ],
         ),
       ),
     );
@@ -743,6 +911,9 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
   }
 
   void _showBulkAbsensiDialog() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = screenWidth > 768;
+
     StatusAbsensi selectedStatus = StatusAbsensi.hadir;
     String selectedLokasiId = '';
     String selectedLokasiName = '';
@@ -750,87 +921,176 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text('Absensi Massal'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              StreamBuilder<List<LocationModel>>(
-                stream: LocationService.getAllLocations(),
-                builder: (context, snapshot) {
-                  final locations = snapshot.data ?? [];
-                  
-                  return DropdownButtonFormField<String>(
-                    value: selectedLokasiId.isEmpty ? null : selectedLokasiId,
-                    decoration: InputDecoration(
-                      labelText: 'Lokasi *',
-                      border: OutlineInputBorder(),
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(isWeb ? 20 : 16),
+          ),
+          child: Container(
+            width: isWeb ? 500 : null,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * (isWeb ? 0.8 : 0.85),
+              maxWidth: isWeb ? 500 : double.infinity,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: EdgeInsets.all(isWeb ? 24 : 20),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.1),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(isWeb ? 20 : 16),
                     ),
-                    items: locations.map((location) {
-                      return DropdownMenuItem(
-                        value: location.id,
-                        child: Text('${location.name} - ${location.city}'),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        final selectedLocation = locations.firstWhere((loc) => loc.id == value);
-                        setDialogState(() {
-                          selectedLokasiId = value;
-                          selectedLokasiName = selectedLocation.name;
-                        });
-                      }
-                    },
-                  );
-                },
-              ),
-              SizedBox(height: 16),
-              
-              Text(
-                'Status Default untuk Semua Bawahan:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              
-              ...StatusAbsensi.values.map((status) {
-                return RadioListTile<StatusAbsensi>(
-                  title: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  ),
+                  child: Row(
                     children: [
-                      Icon(status.statusIcon, color: status.statusColor, size: 20),
-                      SizedBox(width: 8),
-                      Text(status.statusDisplayName),
+                      Icon(
+                        Icons.group_add, 
+                        color: Colors.purple,
+                        size: isWeb ? 24 : 20,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Absensi Massal',
+                          style: TextStyle(
+                            fontSize: isWeb ? 20 : 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.close, size: isWeb ? 24 : 20),
+                      ),
                     ],
                   ),
-                  value: status,
-                  groupValue: selectedStatus,
-                  onChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() => selectedStatus = value);
-                    }
-                  },
-                );
-              }),
-            ],
+                ),
+
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(isWeb ? 24 : 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        StreamBuilder<List<LocationModel>>(
+                          stream: LocationService.getAllLocations(),
+                          builder: (context, snapshot) {
+                            final locations = snapshot.data ?? [];
+                            
+                            return DropdownButtonFormField<String>(
+                              value: selectedLokasiId.isEmpty ? null : selectedLokasiId,
+                              decoration: InputDecoration(
+                                labelText: 'Lokasi *',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              items: locations.map((location) {
+                                return DropdownMenuItem(
+                                  value: location.id,
+                                  child: Text('${location.name} - ${location.city}'),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  final selectedLocation = locations.firstWhere((loc) => loc.id == value);
+                                  setDialogState(() {
+                                    selectedLokasiId = value;
+                                    selectedLokasiName = selectedLocation.name;
+                                  });
+                                }
+                              },
+                            );
+                          },
+                        ),
+                        SizedBox(height: isWeb ? 20 : 16),
+                        
+                        Text(
+                          'Status Default untuk Semua Bawahan:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: isWeb ? 16 : 14,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        
+                        ...StatusAbsensi.values.map((status) {
+                          return RadioListTile<StatusAbsensi>(
+                            contentPadding: EdgeInsets.symmetric(horizontal: 0),
+                            title: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  status.statusIcon, 
+                                  color: status.statusColor, 
+                                  size: isWeb ? 22 : 20,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  status.statusDisplayName,
+                                  style: TextStyle(fontSize: isWeb ? 16 : 14),
+                                ),
+                              ],
+                            ),
+                            value: status,
+                            groupValue: selectedStatus,
+                            onChanged: (value) {
+                              if (value != null) {
+                                setDialogState(() => selectedStatus = value);
+                              }
+                            },
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Actions
+                Container(
+                  padding: EdgeInsets.all(isWeb ? 24 : 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            'Batal',
+                            style: TextStyle(fontSize: isWeb ? 16 : 14),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 12),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: selectedLokasiId.isEmpty ? null : () => _saveBulkAbsensi(
+                            selectedStatus,
+                            selectedLokasiId,
+                            selectedLokasiName,
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purple,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 12),
+                          ),
+                          child: Text(
+                            'Simpan Semua',
+                            style: TextStyle(fontSize: isWeb ? 16 : 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: selectedLokasiId.isEmpty ? null : () => _saveBulkAbsensi(
-                selectedStatus,
-                selectedLokasiId,
-                selectedLokasiName,
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
-                foregroundColor: Colors.white,
-              ),
-              child: Text('Simpan Semua'),
-            ),
-          ],
         ),
       ),
     );
@@ -851,7 +1111,6 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
         throw Exception('User not found');
       }
 
-      // Get all bawahan
       final bawahanSnapshot = await AbsensiService.getAllBawahan().first;
       
       await AbsensiService.bulkCreateAbsensi(
@@ -880,20 +1139,6 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
         ),
       );
     }
-  }
-
-  void _showMonthlyReport() {
-    // Implementasi laporan bulanan
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Fitur laporan bulanan akan segera hadir')),
-    );
-  }
-
-  void _showDetailHistory() {
-    // Implementasi riwayat detail  
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Fitur riwayat detail akan segera hadir')),
-    );
   }
 
   @override

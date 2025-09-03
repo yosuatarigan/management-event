@@ -19,16 +19,42 @@ class _NotaPageState extends State<NotaPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = screenWidth > 768;
+    final isTablet = screenWidth > 600 && screenWidth <= 768;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Nota Pengeluaran'),
-        elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: () => _showAddNotaDialog(),
-            icon: Icon(Icons.add),
-            tooltip: 'Tambah Nota',
+        title: Text(
+          'Nota Pengeluaran',
+          style: TextStyle(
+            fontSize: isWeb ? 20 : 18,
+            fontWeight: FontWeight.w600,
           ),
+        ),
+        elevation: 0,
+        centerTitle: !isWeb,
+        actions: [
+          if (isWeb)
+            Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: ElevatedButton.icon(
+                onPressed: () => _showAddNotaDialog(),
+                icon: Icon(Icons.add, size: 18),
+                label: Text('Tambah Nota'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              onPressed: () => _showAddNotaDialog(),
+              icon: Icon(Icons.add),
+              tooltip: 'Tambah Nota',
+            ),
         ],
       ),
       body: Column(
@@ -36,128 +62,200 @@ class _NotaPageState extends State<NotaPage> {
           // Search Section
           Container(
             color: Theme.of(context).primaryColor.withOpacity(0.1),
-            padding: EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Cari nota...',
-                prefixIcon: Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+            padding: EdgeInsets.all(isWeb ? 24 : 16),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: isWeb ? 1200 : double.infinity),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Cari nota...',
+                    prefixIcon: Icon(Icons.search),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: isWeb ? 16 : 12,
+                      vertical: isWeb ? 16 : 12,
+                    ),
+                  ),
+                  onChanged: (value) {
+                    setState(() => _searchQuery = value.toLowerCase());
+                  },
                 ),
               ),
-              onChanged: (value) {
-                setState(() => _searchQuery = value.toLowerCase());
-              },
             ),
           ),
           
-          // Total Amount Summary
-          StreamBuilder<List<NotaModel>>(
-            stream: NotaService.getCurrentUserNota(),
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                final notaList = snapshot.data!;
-                final totalAmount = notaList.fold<double>(0, (sum, n) => sum + n.nominal);
-
-                return Container(
-                  margin: EdgeInsets.all(16),
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.receipt_long, color: Colors.orange, size: 24),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Total Pengeluaran',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Rp ${totalAmount.toStringAsFixed(0).replaceAllMapped(
-                                RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                                (Match match) => '${match[1]}.',
-                              )}',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.orange.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          '${notaList.length} nota',
-                          style: TextStyle(
-                            color: Colors.orange.shade700,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              return Container();
-            },
-          ),
-          
-          // Nota List
+          // Content
           Expanded(
-            child: StreamBuilder<List<NotaModel>>(
-              stream: NotaService.getCurrentUserNota(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: isWeb ? 1200 : double.infinity),
+                child: Column(
+                  children: [
+                    // Total Amount Summary
+                    StreamBuilder<List<NotaModel>>(
+                      stream: NotaService.getCurrentUserNota(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          final notaList = snapshot.data!;
+                          final totalAmount = notaList.fold<double>(0, (sum, n) => sum + n.nominal);
 
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
-                }
+                          return Container(
+                            margin: EdgeInsets.all(isWeb ? 24 : 16),
+                            padding: EdgeInsets.all(isWeb ? 20 : 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  blurRadius: isWeb ? 8 : 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: isWeb 
+                              ? Row(
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        Icons.receipt_long, 
+                                        color: Colors.orange, 
+                                        size: 28,
+                                      ),
+                                    ),
+                                    SizedBox(width: 20),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Total Pengeluaran',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                          SizedBox(height: 6),
+                                          Text(
+                                            'Rp ${totalAmount.toStringAsFixed(0).replaceAllMapped(
+                                              RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                              (Match match) => '${match[1]}.',
+                                            )}',
+                                            style: TextStyle(
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.orange.shade700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        '${notaList.length} nota',
+                                        style: TextStyle(
+                                          color: Colors.orange.shade700,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Row(
+                                  children: [
+                                    Icon(Icons.receipt_long, color: Colors.orange, size: 24),
+                                    SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Total Pengeluaran',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            'Rp ${totalAmount.toStringAsFixed(0).replaceAllMapped(
+                                              RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                              (Match match) => '${match[1]}.',
+                                            )}',
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.orange.shade700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Text(
+                                        '${notaList.length} nota',
+                                        style: TextStyle(
+                                          color: Colors.orange.shade700,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                          );
+                        }
+                        return Container();
+                      },
+                    ),
+                    
+                    // Nota List
+                    Expanded(
+                      child: StreamBuilder<List<NotaModel>>(
+                        stream: NotaService.getCurrentUserNota(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Center(child: CircularProgressIndicator());
+                          }
 
-                final notaList = _filterNota(snapshot.data ?? []);
+                          if (snapshot.hasError) {
+                            return Center(child: Text('Error: ${snapshot.error}'));
+                          }
 
-                if (notaList.isEmpty) {
-                  return _buildEmptyState();
-                }
+                          final notaList = _filterNota(snapshot.data ?? []);
 
-                return ListView.builder(
-                  padding: EdgeInsets.all(16),
-                  itemCount: notaList.length,
-                  itemBuilder: (context, index) {
-                    return _buildNotaCard(notaList[index]);
-                  },
-                );
-              },
+                          if (notaList.isEmpty) {
+                            return _buildEmptyState(isWeb);
+                          }
+
+                          return _buildNotaList(notaList, isWeb);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -165,22 +263,50 @@ class _NotaPageState extends State<NotaPage> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildNotaList(List<NotaModel> notaList, bool isWeb) {
+    if (isWeb) {
+      // Grid layout for web
+      return GridView.builder(
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 20,
+          mainAxisSpacing: 16,
+          childAspectRatio: 2.5,
+        ),
+        itemCount: notaList.length,
+        itemBuilder: (context, index) {
+          return _buildNotaCard(notaList[index], isWeb);
+        },
+      );
+    } else {
+      // List layout for mobile/tablet
+      return ListView.builder(
+        padding: EdgeInsets.all(16),
+        itemCount: notaList.length,
+        itemBuilder: (context, index) {
+          return _buildNotaCard(notaList[index], isWeb);
+        },
+      );
+    }
+  }
+
+  Widget _buildEmptyState(bool isWeb) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.receipt_outlined,
-            size: 64,
+            size: isWeb ? 80 : 64,
             color: Colors.grey.shade400,
           ),
-          SizedBox(height: 16),
+          SizedBox(height: isWeb ? 24 : 16),
           Text(
             'Belum ada nota pengeluaran',
             style: TextStyle(
               color: Colors.grey.shade600,
-              fontSize: 16,
+              fontSize: isWeb ? 20 : 16,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -189,9 +315,10 @@ class _NotaPageState extends State<NotaPage> {
             'Tambahkan nota pengeluaran pertama Anda',
             style: TextStyle(
               color: Colors.grey.shade500,
+              fontSize: isWeb ? 16 : 14,
             ),
           ),
-          SizedBox(height: 24),
+          SizedBox(height: isWeb ? 32 : 24),
           ElevatedButton.icon(
             onPressed: () => _showAddNotaDialog(),
             icon: Icon(Icons.add),
@@ -199,6 +326,10 @@ class _NotaPageState extends State<NotaPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(
+                horizontal: isWeb ? 24 : 16,
+                vertical: isWeb ? 16 : 12,
+              ),
             ),
           ),
         ],
@@ -206,34 +337,36 @@ class _NotaPageState extends State<NotaPage> {
     );
   }
 
-  Widget _buildNotaCard(NotaModel nota) {
+  Widget _buildNotaCard(NotaModel nota, bool isWeb) {
     return Card(
-      margin: EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: isWeb ? EdgeInsets.zero : EdgeInsets.only(bottom: 12),
+      elevation: isWeb ? 4 : 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
         onTap: () => _showDetailDialog(nota),
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: EdgeInsets.all(isWeb ? 20 : 16),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Receipt Icon
               Container(
-                width: 50,
-                height: 50,
+                width: isWeb ? 60 : 50,
+                height: isWeb ? 60 : 50,
                 decoration: BoxDecoration(
                   color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(isWeb ? 12 : 8),
                 ),
                 child: Icon(
                   Icons.receipt,
                   color: Colors.orange,
-                  size: 24,
+                  size: isWeb ? 28 : 24,
                 ),
               ),
-              SizedBox(width: 12),
+              SizedBox(width: isWeb ? 16 : 12),
               
               // Content
               Expanded(
@@ -248,7 +381,7 @@ class _NotaPageState extends State<NotaPage> {
                             nota.formattedNominal,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 18,
+                              fontSize: isWeb ? 20 : 18,
                               color: Colors.grey.shade800,
                             ),
                           ),
@@ -257,36 +390,40 @@ class _NotaPageState extends State<NotaPage> {
                           nota.formattedTanggal,
                           style: TextStyle(
                             color: Colors.grey.shade600,
-                            fontSize: 12,
+                            fontSize: isWeb ? 14 : 12,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 8),
+                    SizedBox(height: isWeb ? 10 : 8),
                     
                     // Purpose
                     Text(
                       nota.keperluan,
                       style: TextStyle(
                         color: Colors.grey.shade700,
-                        fontSize: 14,
+                        fontSize: isWeb ? 16 : 14,
                       ),
-                      maxLines: 2,
+                      maxLines: isWeb ? 1 : 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    SizedBox(height: 6),
+                    SizedBox(height: isWeb ? 8 : 6),
                     
                     // Location
                     Row(
                       children: [
-                        Icon(Icons.location_on, size: 14, color: Colors.grey.shade600),
+                        Icon(
+                          Icons.location_on, 
+                          size: isWeb ? 16 : 14, 
+                          color: Colors.grey.shade600,
+                        ),
                         SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             nota.lokasiName,
                             style: TextStyle(
                               color: Colors.grey.shade600,
-                              fontSize: 12,
+                              fontSize: isWeb ? 14 : 12,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -365,36 +502,50 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = screenWidth > 768;
+    final dialogWidth = isWeb ? 500.0 : screenWidth * 0.9;
+
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isWeb ? 20 : 16)),
       child: Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+        width: dialogWidth,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * (isWeb ? 0.85 : 0.8),
+          maxWidth: isWeb ? 500 : double.infinity,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Header
             Container(
-              padding: EdgeInsets.all(20),
+              padding: EdgeInsets.all(isWeb ? 24 : 20),
               decoration: BoxDecoration(
                 color: Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(isWeb ? 20 : 16),
+                ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.receipt_long, color: Colors.orange),
+                  Icon(
+                    Icons.receipt_long, 
+                    color: Colors.orange, 
+                    size: isWeb ? 24 : 20,
+                  ),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Tambah Nota Pengeluaran',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: isWeb ? 20 : 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close),
+                    icon: Icon(Icons.close, size: isWeb ? 24 : 20),
                   ),
                 ],
               ),
@@ -403,7 +554,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
             // Form
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.all(20),
+                padding: EdgeInsets.all(isWeb ? 24 : 20),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -414,23 +565,25 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                         child: InputDecorator(
                           decoration: InputDecoration(
                             labelText: 'Tanggal *',
-                            border: OutlineInputBorder(),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             suffixIcon: Icon(Icons.calendar_today),
                           ),
                           child: Text(
                             '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                            style: TextStyle(fontSize: 16),
+                            style: TextStyle(fontSize: isWeb ? 16 : 14),
                           ),
                         ),
                       ),
-                      SizedBox(height: 16),
+                      SizedBox(height: isWeb ? 20 : 16),
                       
                       // Lokasi
                       StreamBuilder<List<LocationModel>>(
                         stream: LocationService.getAllLocations(),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
-                            return CircularProgressIndicator();
+                            return Center(child: CircularProgressIndicator());
                           }
                           
                           final locations = snapshot.data ?? [];
@@ -439,7 +592,9 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                             value: _selectedLokasiId.isEmpty ? null : _selectedLokasiId,
                             decoration: InputDecoration(
                               labelText: 'Lokasi *',
-                              border: OutlineInputBorder(),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             items: locations.map((location) {
                               return DropdownMenuItem(
@@ -460,14 +615,16 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                           );
                         },
                       ),
-                      SizedBox(height: 16),
+                      SizedBox(height: isWeb ? 20 : 16),
                       
                       // Nominal
                       TextFormField(
                         controller: _nominalController,
                         decoration: InputDecoration(
                           labelText: 'Nominal *',
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           prefixText: 'Rp ',
                         ),
                         keyboardType: TextInputType.number,
@@ -477,35 +634,37 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                           return null;
                         },
                       ),
-                      SizedBox(height: 16),
+                      SizedBox(height: isWeb ? 20 : 16),
                       
                       // Keperluan
                       TextFormField(
                         controller: _keperluanController,
                         decoration: InputDecoration(
                           labelText: 'Keperluan *',
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           hintText: 'Jelaskan keperluan pengeluaran...',
                         ),
                         maxLines: 3,
                         validator: (value) => value?.isEmpty ?? true ? 'Keperluan wajib diisi' : null,
                       ),
-                      SizedBox(height: 16),
+                      SizedBox(height: isWeb ? 20 : 16),
                       
                       // Photo Upload Section
                       Container(
                         width: double.infinity,
-                        padding: EdgeInsets.all(16),
+                        padding: EdgeInsets.all(isWeb ? 20 : 16),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
                           children: [
                             if (_selectedPhoto == null) ...[
                               Icon(
                                 Icons.camera_alt_outlined,
-                                size: 48,
+                                size: isWeb ? 56 : 48,
                                 color: Colors.grey.shade400,
                               ),
                               SizedBox(height: 12),
@@ -514,11 +673,13 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                                 style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontWeight: FontWeight.w500,
+                                  fontSize: isWeb ? 16 : 14,
                                 ),
                               ),
-                              SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              SizedBox(height: isWeb ? 20 : 16),
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 8,
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: () => _capturePhoto(ImageSource.camera),
@@ -527,6 +688,10 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.blue,
                                       foregroundColor: Colors.white,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: isWeb ? 20 : 16,
+                                        vertical: isWeb ? 12 : 8,
+                                      ),
                                     ),
                                   ),
                                   ElevatedButton.icon(
@@ -536,13 +701,17 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.green,
                                       foregroundColor: Colors.white,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: isWeb ? 20 : 16,
+                                        vertical: isWeb ? 12 : 8,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ] else ...[
                               Container(
-                                height: 120,
+                                height: isWeb ? 150 : 120,
                                 width: double.infinity,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(8),
@@ -556,8 +725,9 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                                 ),
                               ),
                               SizedBox(height: 12),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 8,
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: () => setState(() => _selectedPhoto = null),
@@ -566,6 +736,10 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.red,
                                       foregroundColor: Colors.white,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: isWeb ? 20 : 16,
+                                        vertical: isWeb ? 12 : 8,
+                                      ),
                                     ),
                                   ),
                                   ElevatedButton.icon(
@@ -575,6 +749,10 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.orange,
                                       foregroundColor: Colors.white,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: isWeb ? 20 : 16,
+                                        vertical: isWeb ? 12 : 8,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -591,13 +769,19 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
             
             // Actions
             Container(
-              padding: EdgeInsets.all(20),
+              padding: EdgeInsets.all(isWeb ? 24 : 20),
               child: Row(
                 children: [
                   Expanded(
                     child: TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: Text('Batal'),
+                      child: Text(
+                        'Batal',
+                        style: TextStyle(fontSize: isWeb ? 16 : 14),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 12),
+                      ),
                     ),
                   ),
                   SizedBox(width: 12),
@@ -608,12 +792,19 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                           ? SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
-                          : Text('Simpan'),
+                          : Text(
+                              'Simpan',
+                              style: TextStyle(fontSize: isWeb ? 16 : 14),
+                            ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
                         foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 12),
                       ),
                     ),
                   ),
@@ -661,7 +852,6 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
   void _submitNota() async {
     if (!_formKey.currentState!.validate() || _selectedPhoto == null) return;
 
-    // Validate photo
     if (!NotaService.isValidPhoto(_selectedPhoto!)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Format foto tidak didukung')),
@@ -686,10 +876,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
         throw Exception('User not found');
       }
 
-      // Create temporary nota ID for photo upload
       final tempNotaId = DateTime.now().millisecondsSinceEpoch.toString();
-      
-      // Upload photo
       final photoUrl = await NotaService.uploadPhoto(_selectedPhoto!, tempNotaId);
 
       final nota = NotaModel(
@@ -732,36 +919,50 @@ class NotaDetailDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = screenWidth > 768;
+    final dialogWidth = isWeb ? 600.0 : screenWidth * 0.9;
+
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isWeb ? 20 : 16)),
       child: Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+        width: dialogWidth,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * (isWeb ? 0.85 : 0.8),
+          maxWidth: isWeb ? 600 : double.infinity,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Header
             Container(
-              padding: EdgeInsets.all(20),
+              padding: EdgeInsets.all(isWeb ? 24 : 20),
               decoration: BoxDecoration(
                 color: Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(isWeb ? 20 : 16),
+                ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.receipt_long, color: Colors.orange),
+                  Icon(
+                    Icons.receipt_long, 
+                    color: Colors.orange, 
+                    size: isWeb ? 24 : 20,
+                  ),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Detail Nota Pengeluaran',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: isWeb ? 20 : 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close),
+                    icon: Icon(Icons.close, size: isWeb ? 24 : 20),
                   ),
                 ],
               ),
@@ -770,14 +971,14 @@ class NotaDetailDialog extends StatelessWidget {
             // Content
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.all(20),
+                padding: EdgeInsets.all(isWeb ? 24 : 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Photo
                     Container(
                       width: double.infinity,
-                      height: 200,
+                      height: isWeb ? 250 : 200,
                       decoration: BoxDecoration(
                         color: Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(12),
@@ -792,9 +993,17 @@ class NotaDetailDialog extends StatelessWidget {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.image_not_supported, size: 48),
+                                  Icon(
+                                    Icons.image_not_supported, 
+                                    size: isWeb ? 56 : 48,
+                                  ),
                                   SizedBox(height: 8),
-                                  Text('Gagal memuat foto'),
+                                  Text(
+                                    'Gagal memuat foto',
+                                    style: TextStyle(
+                                      fontSize: isWeb ? 16 : 14,
+                                    ),
+                                  ),
                                 ],
                               ),
                             );
@@ -802,12 +1011,12 @@ class NotaDetailDialog extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SizedBox(height: 20),
+                    SizedBox(height: isWeb ? 24 : 20),
                     
                     // Amount (prominent)
                     Container(
                       width: double.infinity,
-                      padding: EdgeInsets.all(16),
+                      padding: EdgeInsets.all(isWeb ? 20 : 16),
                       decoration: BoxDecoration(
                         color: Colors.orange.shade50,
                         borderRadius: BorderRadius.circular(12),
@@ -819,14 +1028,14 @@ class NotaDetailDialog extends StatelessWidget {
                             'Nominal Pengeluaran',
                             style: TextStyle(
                               color: Colors.orange.shade700,
-                              fontSize: 14,
+                              fontSize: isWeb ? 16 : 14,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          SizedBox(height: 6),
                           Text(
                             nota.formattedNominal,
                             style: TextStyle(
-                              fontSize: 24,
+                              fontSize: isWeb ? 28 : 24,
                               fontWeight: FontWeight.bold,
                               color: Colors.orange.shade800,
                             ),
@@ -834,26 +1043,33 @@ class NotaDetailDialog extends StatelessWidget {
                         ],
                       ),
                     ),
-                    SizedBox(height: 20),
+                    SizedBox(height: isWeb ? 24 : 20),
                     
                     // Info Details
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildInfoItem('Tanggal', nota.formattedTanggal),
-                        ),
-                        SizedBox(width: 16),
-                        Expanded(
-                          child: _buildInfoItem('Lokasi', nota.lokasiName),
-                        ),
-                      ],
-                    ),
+                    if (isWeb)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildInfoItem('Tanggal', nota.formattedTanggal, isWeb),
+                          ),
+                          SizedBox(width: 20),
+                          Expanded(
+                            child: _buildInfoItem('Lokasi', nota.lokasiName, isWeb),
+                          ),
+                        ],
+                      )
+                    else ...[
+                      _buildInfoItem('Tanggal', nota.formattedTanggal, isWeb),
+                      SizedBox(height: 16),
+                      _buildInfoItem('Lokasi', nota.lokasiName, isWeb),
+                    ],
+                    
                     SizedBox(height: 16),
                     
                     // Purpose
-                    _buildInfoItem('Keperluan', nota.keperluan),
+                    _buildInfoItem('Keperluan', nota.keperluan, isWeb),
                     SizedBox(height: 16),
-                    _buildInfoItem('Dibuat', nota.formattedDate),
+                    _buildInfoItem('Dibuat', nota.formattedDate, isWeb),
                   ],
                 ),
               ),
@@ -861,12 +1077,15 @@ class NotaDetailDialog extends StatelessWidget {
             
             // Actions
             Container(
-              padding: EdgeInsets.all(20),
+              padding: EdgeInsets.all(isWeb ? 24 : 20),
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('Tutup'),
+                child: Text(
+                  'Tutup',
+                  style: TextStyle(fontSize: isWeb ? 16 : 14),
+                ),
                 style: ElevatedButton.styleFrom(
-                  minimumSize: Size(double.infinity, 45),
+                  minimumSize: Size(double.infinity, isWeb ? 50 : 45),
                 ),
               ),
             ),
@@ -876,14 +1095,14 @@ class NotaDetailDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoItem(String label, String value) {
+  Widget _buildInfoItem(String label, String value, bool isWeb) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: isWeb ? 14 : 12,
             color: Colors.grey.shade600,
           ),
         ),
@@ -892,7 +1111,7 @@ class NotaDetailDialog extends StatelessWidget {
           value,
           style: TextStyle(
             fontWeight: FontWeight.w500,
-            fontSize: 14,
+            fontSize: isWeb ? 16 : 14,
           ),
         ),
       ],
