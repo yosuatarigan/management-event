@@ -1,7 +1,10 @@
+import 'dart:typed_data';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'nota_service.dart';
 import 'nota_model.dart';
 import 'location_service.dart';
@@ -478,7 +481,7 @@ class _NotaPageState extends State<NotaPage> {
   }
 }
 
-// Add Nota Dialog
+// Simple Add Nota Dialog
 class AddNotaDialog extends StatefulWidget {
   final VoidCallback onAdded;
 
@@ -492,27 +495,26 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
   final _formKey = GlobalKey<FormState>();
   final _keperluanController = TextEditingController();
   final _nominalController = TextEditingController();
-  final ImagePicker _imagePicker = ImagePicker();
+  final ImagePicker _picker = ImagePicker();
   
   String _selectedLokasiId = '';
   String _selectedLokasiName = '';
   DateTime _selectedDate = DateTime.now();
   File? _selectedPhoto;
+  Uint8List? _webImage;
   bool _isUploading = false;
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 768;
-    final dialogWidth = isWeb ? 500.0 : screenWidth * 0.9;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isWeb ? 20 : 16)),
       child: Container(
-        width: dialogWidth,
+        width: isWeb ? 500.0 : screenWidth * 0.9,
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * (isWeb ? 0.85 : 0.8),
-          maxWidth: isWeb ? 500 : double.infinity,
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -661,7 +663,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                         ),
                         child: Column(
                           children: [
-                            if (_selectedPhoto == null) ...[
+                            if (_selectedPhoto == null && _webImage == null) ...[
                               Icon(
                                 Icons.camera_alt_outlined,
                                 size: isWeb ? 56 : 48,
@@ -681,30 +683,23 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                                 spacing: 12,
                                 runSpacing: 8,
                                 children: [
-                                  ElevatedButton.icon(
-                                    onPressed: () => _capturePhoto(ImageSource.camera),
-                                    icon: Icon(Icons.camera_alt, size: 20),
-                                    label: Text('Kamera'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue,
-                                      foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: isWeb ? 20 : 16,
-                                        vertical: isWeb ? 12 : 8,
+                                  if (!kIsWeb)
+                                    ElevatedButton.icon(
+                                      onPressed: () => _pickImage(ImageSource.camera),
+                                      icon: Icon(Icons.camera_alt, size: 20),
+                                      label: Text('Kamera'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue,
+                                        foregroundColor: Colors.white,
                                       ),
                                     ),
-                                  ),
                                   ElevatedButton.icon(
-                                    onPressed: () => _capturePhoto(ImageSource.gallery),
+                                    onPressed: () => _pickImage(ImageSource.gallery),
                                     icon: Icon(Icons.photo, size: 20),
-                                    label: Text('Galeri'),
+                                    label: Text(kIsWeb ? 'Pilih File' : 'Galeri'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.green,
                                       foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: isWeb ? 20 : 16,
-                                        vertical: isWeb ? 12 : 8,
-                                      ),
                                     ),
                                   ),
                                 ],
@@ -718,41 +713,34 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(
-                                    _selectedPhoto!,
-                                    fit: BoxFit.cover,
-                                  ),
+                                  child: _webImage != null
+                                      ? Image.memory(_webImage!, fit: BoxFit.cover)
+                                      : Image.file(_selectedPhoto!, fit: BoxFit.cover),
                                 ),
                               ),
                               SizedBox(height: 12),
                               Wrap(
                                 spacing: 12,
-                                runSpacing: 8,
                                 children: [
                                   ElevatedButton.icon(
-                                    onPressed: () => setState(() => _selectedPhoto = null),
+                                    onPressed: () => setState(() {
+                                      _selectedPhoto = null;
+                                      _webImage = null;
+                                    }),
                                     icon: Icon(Icons.delete, size: 20),
                                     label: Text('Hapus'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.red,
                                       foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: isWeb ? 20 : 16,
-                                        vertical: isWeb ? 12 : 8,
-                                      ),
                                     ),
                                   ),
                                   ElevatedButton.icon(
-                                    onPressed: () => _capturePhoto(ImageSource.camera),
+                                    onPressed: () => _pickImage(ImageSource.gallery),
                                     icon: Icon(Icons.refresh, size: 20),
                                     label: Text('Ganti'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.orange,
                                       foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: isWeb ? 20 : 16,
-                                        vertical: isWeb ? 12 : 8,
-                                      ),
                                     ),
                                   ),
                                 ],
@@ -775,10 +763,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                   Expanded(
                     child: TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Batal',
-                        style: TextStyle(fontSize: isWeb ? 16 : 14),
-                      ),
+                      child: Text('Batal'),
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 12),
                       ),
@@ -787,7 +772,9 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                   SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isUploading || _selectedPhoto == null ? null : _submitNota,
+                      onPressed: _isUploading || (_selectedPhoto == null && _webImage == null) 
+                          ? null 
+                          : _submitNota,
                       child: _isUploading
                           ? SizedBox(
                               height: 20,
@@ -797,10 +784,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                                 color: Colors.white,
                               ),
                             )
-                          : Text(
-                              'Simpan',
-                              style: TextStyle(fontSize: isWeb ? 16 : 14),
-                            ),
+                          : Text('Simpan'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
                         foregroundColor: Colors.white,
@@ -830,38 +814,62 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
     }
   }
 
-  void _capturePhoto(ImageSource source) async {
-    try {
-      final XFile? photo = await _imagePicker.pickImage(
+  // Simple image picker like your example
+  Future<void> _pickImage(ImageSource source) async {
+    final ImagePicker picker = ImagePicker();
+    
+    if (kIsWeb && source == ImageSource.camera) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Kamera tidak tersedia di web')),
+      );
+      return;
+    }
+    
+    if (kIsWeb) {
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        final webImage = await pickedFile.readAsBytes();
+        setState(() {
+          _webImage = webImage;
+          _selectedPhoto = null;
+        });
+      }
+    } else {
+      final pickedFile = await picker.pickImage(
         source: source,
         maxWidth: 1920,
         maxHeight: 1080,
         imageQuality: 80,
       );
-      
-      if (photo != null) {
-        setState(() => _selectedPhoto = File(photo.path));
+      if (pickedFile != null) {
+        setState(() {
+          _selectedPhoto = File(pickedFile.path);
+          _webImage = null;
+        });
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error mengambil foto: $e')),
-      );
     }
   }
 
-  void _submitNota() async {
-    if (!_formKey.currentState!.validate() || _selectedPhoto == null) return;
+  // Simple upload like your example
+  Future<String> uploadImage(File? image, Uint8List? webimage) async {
+    String docnya = DateTime.now().millisecondsSinceEpoch.toString();
+    final ref = FirebaseStorage.instance.ref().child('nota_pengeluaran').child(docnya);
 
-    if (!NotaService.isValidPhoto(_selectedPhoto!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Format foto tidak didukung')),
-      );
-      return;
+    if (webimage == null) {
+      await ref.putFile(image!);
+    } else {
+      await ref.putData(webimage);
     }
 
-    if (!NotaService.isValidFileSize(_selectedPhoto!)) {
+    return await ref.getDownloadURL();
+  }
+
+  Future<void> _submitNota() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (_selectedPhoto == null && _webImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ukuran foto terlalu besar (max 10MB)')),
+        SnackBar(content: Text('Foto nota wajib diupload')),
       );
       return;
     }
@@ -876,8 +884,8 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
         throw Exception('User not found');
       }
 
-      final tempNotaId = DateTime.now().millisecondsSinceEpoch.toString();
-      final photoUrl = await NotaService.uploadPhoto(_selectedPhoto!, tempNotaId);
+      // Simple upload using your pattern
+      final photoUrl = await uploadImage(_selectedPhoto, _webImage);
 
       final nota = NotaModel(
         notaId: '',
@@ -911,7 +919,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
   }
 }
 
-// Detail Dialog
+// Simple Detail Dialog
 class NotaDetailDialog extends StatelessWidget {
   final NotaModel nota;
 
@@ -921,18 +929,15 @@ class NotaDetailDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 768;
-    final dialogWidth = isWeb ? 600.0 : screenWidth * 0.9;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isWeb ? 20 : 16)),
       child: Container(
-        width: dialogWidth,
+        width: isWeb ? 600.0 : screenWidth * 0.9,
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * (isWeb ? 0.85 : 0.8),
-          maxWidth: isWeb ? 600 : double.infinity,
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             // Header
             Container(
@@ -945,11 +950,7 @@ class NotaDetailDialog extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.receipt_long, 
-                    color: Colors.orange, 
-                    size: isWeb ? 24 : 20,
-                  ),
+                  Icon(Icons.receipt_long, color: Colors.orange),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -962,7 +963,7 @@ class NotaDetailDialog extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close, size: isWeb ? 24 : 20),
+                    icon: Icon(Icons.close),
                   ),
                 ],
               ),
@@ -988,30 +989,12 @@ class NotaDetailDialog extends StatelessWidget {
                         child: Image.network(
                           nota.fotoNotaUrl,
                           fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.image_not_supported, 
-                                    size: isWeb ? 56 : 48,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Gagal memuat foto',
-                                    style: TextStyle(
-                                      fontSize: isWeb ? 16 : 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+                          errorBuilder: (context, error, stackTrace) =>
+                              Center(child: Icon(Icons.error)),
                         ),
                       ),
                     ),
-                    SizedBox(height: isWeb ? 24 : 20),
+                    SizedBox(height: 20),
                     
                     // Amount (prominent)
                     Container(
@@ -1043,78 +1026,39 @@ class NotaDetailDialog extends StatelessWidget {
                         ],
                       ),
                     ),
-                    SizedBox(height: isWeb ? 24 : 20),
+                    SizedBox(height: 20),
                     
-                    // Info Details
-                    if (isWeb)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildInfoItem('Tanggal', nota.formattedTanggal, isWeb),
-                          ),
-                          SizedBox(width: 20),
-                          Expanded(
-                            child: _buildInfoItem('Lokasi', nota.lokasiName, isWeb),
-                          ),
-                        ],
-                      )
-                    else ...[
-                      _buildInfoItem('Tanggal', nota.formattedTanggal, isWeb),
-                      SizedBox(height: 16),
-                      _buildInfoItem('Lokasi', nota.lokasiName, isWeb),
-                    ],
-                    
-                    SizedBox(height: 16),
-                    
-                    // Purpose
-                    _buildInfoItem('Keperluan', nota.keperluan, isWeb),
-                    SizedBox(height: 16),
-                    _buildInfoItem('Dibuat', nota.formattedDate, isWeb),
+                    // Info
+                    Text('Tanggal: ${nota.formattedTanggal}',
+                        style: TextStyle(fontSize: 16)),
+                    SizedBox(height: 8),
+                    Text('Lokasi: ${nota.lokasiName}',
+                        style: TextStyle(fontSize: 16)),
+                    SizedBox(height: 8),
+                    Text('Keperluan: ${nota.keperluan}',
+                        style: TextStyle(fontSize: 16)),
+                    SizedBox(height: 8),
+                    Text('Dibuat: ${nota.formattedDate}',
+                        style: TextStyle(fontSize: 16)),
                   ],
                 ),
               ),
             ),
             
-            // Actions
-            Container(
+            // Close Button
+            Padding(
               padding: EdgeInsets.all(isWeb ? 24 : 20),
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Tutup',
-                  style: TextStyle(fontSize: isWeb ? 16 : 14),
-                ),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size(double.infinity, isWeb ? 50 : 45),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Tutup'),
                 ),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildInfoItem(String label, String value, bool isWeb) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isWeb ? 14 : 12,
-            color: Colors.grey.shade600,
-          ),
-        ),
-        SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: isWeb ? 16 : 14,
-          ),
-        ),
-      ],
     );
   }
 }

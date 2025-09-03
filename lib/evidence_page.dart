@@ -1,7 +1,10 @@
+import 'dart:typed_data';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:management_event/user_model.dart';
 import 'evidence_service.dart';
 import 'evidence_model.dart';
@@ -577,7 +580,7 @@ class _EvidencePageState extends State<EvidencePage> {
   }
 }
 
-// Upload Dialog Widget
+// Simple Upload Dialog
 class EvidenceUploadDialog extends StatefulWidget {
   final VoidCallback onUploaded;
 
@@ -590,12 +593,14 @@ class EvidenceUploadDialog extends StatefulWidget {
 class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
-  final ImagePicker _imagePicker = ImagePicker();
+  final ImagePicker _picker = ImagePicker();
 
   String _selectedLokasiId = '';
   String _selectedLokasiName = '';
   KategoriEvidence _selectedKategori = KategoriEvidence.foto;
+  
   File? _selectedFile;
+  Uint8List? _webImage;
   bool _isUploading = false;
 
   UserModel? _currentUser;
@@ -637,19 +642,71 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
     });
   }
 
+  // Simple image picker like your example
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    if (kIsWeb) {
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        final webImage = await pickedFile.readAsBytes();
+        setState(() {
+          _webImage = webImage;
+          _selectedFile = null;
+        });
+      }
+    } else {
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        setState(() {
+          _selectedFile = File(pickedFile.path);
+          _webImage = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _captureImage() async {
+    final ImagePicker picker = ImagePicker();
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Kamera tidak tersedia di web')),
+      );
+    } else {
+      final pickedFile = await picker.pickImage(source: ImageSource.camera);
+      if (pickedFile != null) {
+        setState(() {
+          _selectedFile = File(pickedFile.path);
+          _webImage = null;
+        });
+      }
+    }
+  }
+
+  // Simple upload like your example
+  Future<String> uploadImage(File? image, Uint8List? webimage) async {
+    String docnya = DateTime.now().millisecondsSinceEpoch.toString();
+    final ref = FirebaseStorage.instance.ref().child('evidence').child(docnya);
+
+    if (webimage == null) {
+      await ref.putFile(image!);
+    } else {
+      await ref.putData(webimage);
+    }
+
+    return await ref.getDownloadURL();
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 768;
-    final dialogWidth = isWeb ? 500.0 : screenWidth * 0.9;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isWeb ? 20 : 16)),
       child: Container(
-        width: dialogWidth,
+        width: isWeb ? 500.0 : screenWidth * 0.9,
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * (isWeb ? 0.85 : 0.8),
-          maxWidth: isWeb ? 500 : double.infinity,
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -711,12 +768,6 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                                     filled: true,
                                     fillColor: Colors.grey[200],
                                   ),
-                                  validator: (value) {
-                                    if (_selectedLokasiId.isEmpty) {
-                                      return 'Lokasi koordinator tidak terdaftar';
-                                    }
-                                    return null;
-                                  },
                                 )
                               : StreamBuilder<List<LocationModel>>(
                                   stream: LocationService.getAllLocations(),
@@ -808,7 +859,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                         ),
                         child: Column(
                           children: [
-                            if (_selectedFile == null) ...[
+                            if (_selectedFile == null && _webImage == null) ...[
                               Icon(
                                 Icons.cloud_upload_outlined,
                                 size: isWeb ? 56 : 48,
@@ -816,7 +867,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                               ),
                               SizedBox(height: 12),
                               Text(
-                                'Pilih file untuk diupload',
+                                'Pilih gambar untuk diupload',
                                 style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontWeight: FontWeight.w500,
@@ -827,37 +878,31 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                               Wrap(
                                 spacing: 12,
                                 runSpacing: 8,
+                                alignment: WrapAlignment.center,
                                 children: [
-                                  ElevatedButton.icon(
-                                    onPressed: () => _captureFromCamera(isVideo: false),
-                                    icon: Icon(Icons.camera_alt, size: 20),
-                                    label: Text('Foto'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue,
-                                      foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: isWeb ? 20 : 16,
-                                        vertical: isWeb ? 12 : 8,
+                                  if (!kIsWeb)
+                                    ElevatedButton.icon(
+                                      onPressed: _captureImage,
+                                      icon: Icon(Icons.camera_alt, size: 20),
+                                      label: Text('Kamera'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue,
+                                        foregroundColor: Colors.white,
                                       ),
                                     ),
-                                  ),
                                   ElevatedButton.icon(
-                                    onPressed: () => _captureFromCamera(isVideo: true),
-                                    icon: Icon(Icons.videocam, size: 20),
-                                    label: Text('Video'),
+                                    onPressed: _pickImage,
+                                    icon: Icon(Icons.photo_library, size: 20),
+                                    label: Text(kIsWeb ? 'Pilih File' : 'Galeri'),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red,
+                                      backgroundColor: Colors.green,
                                       foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: isWeb ? 20 : 16,
-                                        vertical: isWeb ? 12 : 8,
-                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ] else ...[
-                              // File Preview
+                              // Image Preview
                               Container(
                                 height: isWeb ? 150 : 120,
                                 width: double.infinity,
@@ -865,71 +910,36 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                                   color: Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: _selectedKategori == KategoriEvidence.foto
-                                    ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.file(
-                                          _selectedFile!,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      )
-                                    : Center(
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              _selectedKategori == KategoriEvidence.video
-                                                  ? Icons.videocam
-                                                  : Icons.description,
-                                              size: isWeb ? 40 : 32,
-                                              color: Colors.grey.shade600,
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              _selectedFile!.path.split('/').last,
-                                              style: TextStyle(
-                                                fontSize: isWeb ? 14 : 12,
-                                                color: Colors.grey.shade600,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: _webImage != null
+                                      ? Image.memory(_webImage!, fit: BoxFit.cover)
+                                      : Image.file(_selectedFile!, fit: BoxFit.cover),
+                                ),
                               ),
                               SizedBox(height: 12),
                               Wrap(
                                 spacing: 12,
-                                runSpacing: 8,
                                 children: [
                                   ElevatedButton.icon(
-                                    onPressed: () => setState(() => _selectedFile = null),
+                                    onPressed: () => setState(() {
+                                      _selectedFile = null;
+                                      _webImage = null;
+                                    }),
                                     icon: Icon(Icons.delete, size: 20),
                                     label: Text('Hapus'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.red,
                                       foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: isWeb ? 20 : 16,
-                                        vertical: isWeb ? 12 : 8,
-                                      ),
                                     ),
                                   ),
                                   ElevatedButton.icon(
-                                    onPressed: () => _captureFromCamera(
-                                      isVideo: _selectedKategori == KategoriEvidence.video,
-                                    ),
+                                    onPressed: _pickImage,
                                     icon: Icon(Icons.refresh, size: 20),
                                     label: Text('Ganti'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.orange,
                                       foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: isWeb ? 20 : 16,
-                                        vertical: isWeb ? 12 : 8,
-                                      ),
                                     ),
                                   ),
                                 ],
@@ -966,10 +976,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                   Expanded(
                     child: TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Batal',
-                        style: TextStyle(fontSize: isWeb ? 16 : 14),
-                      ),
+                      child: Text('Batal'),
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 12),
                       ),
@@ -978,7 +985,9 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                   SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isUploading || _selectedFile == null ? null : _uploadEvidence,
+                      onPressed: _isUploading || (_selectedFile == null && _webImage == null) 
+                          ? null 
+                          : _uploadEvidence,
                       child: _isUploading
                           ? SizedBox(
                               height: 20,
@@ -988,10 +997,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                                 color: Colors.white,
                               ),
                             )
-                          : Text(
-                              'Upload',
-                              style: TextStyle(fontSize: isWeb ? 16 : 14),
-                            ),
+                          : Text('Upload'),
                       style: ElevatedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 12),
                       ),
@@ -1006,57 +1012,12 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
     );
   }
 
-  void _captureFromCamera({required bool isVideo}) async {
-    try {
-      if (isVideo) {
-        final XFile? video = await _imagePicker.pickVideo(
-          source: ImageSource.camera,
-          maxDuration: Duration(minutes: 5),
-        );
-
-        if (video != null) {
-          setState(() {
-            _selectedFile = File(video.path);
-            _selectedKategori = KategoriEvidence.video;
-          });
-        }
-      } else {
-        final XFile? image = await _imagePicker.pickImage(
-          source: ImageSource.camera,
-          maxWidth: 1920,
-          maxHeight: 1080,
-          imageQuality: 80,
-        );
-
-        if (image != null) {
-          setState(() {
-            _selectedFile = File(image.path);
-            _selectedKategori = KategoriEvidence.foto;
-          });
-        }
-      }
-    } catch (e) {
+  Future<void> _uploadEvidence() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (_selectedFile == null && _webImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error mengambil file: $e')),
-      );
-    }
-  }
-
-  void _uploadEvidence() async {
-    if (!_formKey.currentState!.validate() || _selectedFile == null) return;
-
-    if (!EvidenceService.isValidFileType(_selectedFile!, _selectedKategori)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Tipe file tidak sesuai dengan kategori yang dipilih'),
-        ),
-      );
-      return;
-    }
-
-    if (!EvidenceService.isValidFileSize(_selectedFile!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ukuran file terlalu besar (max 50MB)')),
+        SnackBar(content: Text('Pilih file terlebih dahulu')),
       );
       return;
     }
@@ -1071,13 +1032,8 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
         throw Exception('User not found');
       }
 
-      final tempEvidenceId = DateTime.now().millisecondsSinceEpoch.toString();
-
-      final fileUrl = await EvidenceService.uploadFile(
-        _selectedFile!,
-        tempEvidenceId,
-        _selectedKategori,
-      );
+      // Simple upload using your pattern
+      final fileUrl = await uploadImage(_selectedFile, _webImage);
 
       final evidence = EvidenceModel(
         evidenceId: '',
@@ -1111,7 +1067,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
   }
 }
 
-// Detail Dialog Widget
+// Detail Dialog - Simple version
 class EvidenceDetailDialog extends StatelessWidget {
   final EvidenceModel evidence;
 
@@ -1121,18 +1077,15 @@ class EvidenceDetailDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 768;
-    final dialogWidth = isWeb ? 600.0 : screenWidth * 0.9;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isWeb ? 20 : 16)),
       child: Container(
-        width: dialogWidth,
+        width: isWeb ? 600.0 : screenWidth * 0.9,
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * (isWeb ? 0.85 : 0.8),
-          maxWidth: isWeb ? 600 : double.infinity,
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             // Header
             Container(
@@ -1145,38 +1098,19 @@ class EvidenceDetailDialog extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    evidence.kategoriIcon,
-                    color: evidence.kategoriColor,
-                    size: isWeb ? 24 : 20,
-                  ),
+                  Icon(evidence.kategoriIcon, color: evidence.kategoriColor),
                   SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Detail Evidence',
-                          style: TextStyle(
-                            fontSize: isWeb ? 20 : 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          evidence.kategoriDisplayName,
-                          style: TextStyle(
-                            color: evidence.kategoriColor,
-                            fontSize: isWeb ? 16 : 14,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      'Detail Evidence',
+                      style: TextStyle(
+                        fontSize: isWeb ? 20 : 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isWeb ? 12 : 8,
-                      vertical: isWeb ? 6 : 4,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: evidence.statusColor,
                       borderRadius: BorderRadius.circular(12),
@@ -1185,15 +1119,14 @@ class EvidenceDetailDialog extends StatelessWidget {
                       evidence.statusDisplayName,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: isWeb ? 14 : 12,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  SizedBox(width: 8),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close, size: isWeb ? 24 : 20),
+                    icon: Icon(Icons.close),
                   ),
                 ],
               ),
@@ -1220,116 +1153,50 @@ class EvidenceDetailDialog extends StatelessWidget {
                             ? Image.network(
                                 evidence.fileUrl,
                                 fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(evidence.kategoriIcon, size: isWeb ? 56 : 48),
-                                        SizedBox(height: 8),
-                                        Text('Gagal memuat file'),
-                                      ],
-                                    ),
-                                  );
-                                },
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Center(child: Icon(Icons.error)),
                               )
                             : Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      evidence.kategoriIcon,
-                                      size: isWeb ? 56 : 48,
-                                      color: evidence.kategoriColor,
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      evidence.kategoriDisplayName,
-                                      style: TextStyle(
-                                        color: evidence.kategoriColor,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: isWeb ? 16 : 14,
-                                      ),
-                                    ),
-                                  ],
+                                child: Icon(
+                                  evidence.kategoriIcon,
+                                  size: 56,
+                                  color: evidence.kategoriColor,
                                 ),
                               ),
                       ),
                     ),
-                    SizedBox(height: isWeb ? 24 : 20),
+                    SizedBox(height: 20),
 
-                    // Info Details
-                    if (isWeb)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildInfoItem('Lokasi', evidence.lokasiName, isWeb),
-                          ),
-                          SizedBox(width: 20),
-                          Expanded(
-                            child: _buildInfoItem('Uploader', evidence.uploaderName, isWeb),
-                          ),
-                        ],
-                      )
-                    else ...[
-                      _buildInfoItem('Lokasi', evidence.lokasiName, isWeb),
-                      SizedBox(height: 16),
-                      _buildInfoItem('Uploader', evidence.uploaderName, isWeb),
-                    ],
-
-                    SizedBox(height: 16),
-
-                    if (isWeb)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildInfoItem('Tanggal', evidence.formattedDate, isWeb),
-                          ),
-                          SizedBox(width: 20),
-                          Expanded(
-                            child: _buildInfoItem('Kategori', evidence.kategoriDisplayName, isWeb),
-                          ),
-                        ],
-                      )
-                    else ...[
-                      _buildInfoItem('Tanggal', evidence.formattedDate, isWeb),
-                      SizedBox(height: 16),
-                      _buildInfoItem('Kategori', evidence.kategoriDisplayName, isWeb),
-                    ],
+                    // Info
+                    Text('Lokasi: ${evidence.lokasiName}',
+                        style: TextStyle(fontSize: 16)),
+                    SizedBox(height: 8),
+                    Text('Uploader: ${evidence.uploaderName}',
+                        style: TextStyle(fontSize: 16)),
+                    SizedBox(height: 8),
+                    Text('Tanggal: ${evidence.formattedDate}',
+                        style: TextStyle(fontSize: 16)),
+                    SizedBox(height: 8),
+                    Text('Kategori: ${evidence.kategoriDisplayName}',
+                        style: TextStyle(fontSize: 16)),
 
                     // Description
-                    if (evidence.description != null && evidence.description!.isNotEmpty) ...[
-                      SizedBox(height: isWeb ? 24 : 20),
-                      Text(
-                        'Deskripsi:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isWeb ? 18 : 16,
-                        ),
-                      ),
+                    if (evidence.description != null &&
+                        evidence.description!.isNotEmpty) ...[
+                      SizedBox(height: 20),
+                      Text('Deskripsi:',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
                       SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(isWeb ? 16 : 12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Text(
-                          evidence.description!,
-                          style: TextStyle(fontSize: isWeb ? 16 : 14),
-                        ),
-                      ),
+                      Text(evidence.description!, style: TextStyle(fontSize: 16)),
                     ],
 
                     // Rejection reason
                     if (evidence.status == StatusEvidence.rejected &&
                         evidence.rejectionReason != null) ...[
-                      SizedBox(height: isWeb ? 24 : 20),
+                      SizedBox(height: 20),
                       Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(isWeb ? 16 : 12),
+                        padding: EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.red.shade50,
                           borderRadius: BorderRadius.circular(8),
@@ -1338,31 +1205,17 @@ class EvidenceDetailDialog extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.cancel,
-                                  color: Colors.red.shade600,
-                                  size: isWeb ? 24 : 20,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Alasan Penolakan:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red.shade700,
-                                    fontSize: isWeb ? 16 : 14,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              'Alasan Penolakan:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red.shade700,
+                              ),
                             ),
                             SizedBox(height: 8),
                             Text(
                               evidence.rejectionReason!,
-                              style: TextStyle(
-                                color: Colors.red.shade700,
-                                fontSize: isWeb ? 15 : 14,
-                              ),
+                              style: TextStyle(color: Colors.red.shade700),
                             ),
                           ],
                         ),
@@ -1373,46 +1226,20 @@ class EvidenceDetailDialog extends StatelessWidget {
               ),
             ),
 
-            // Actions
-            Container(
+            // Close Button
+            Padding(
               padding: EdgeInsets.all(isWeb ? 24 : 20),
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Tutup',
-                  style: TextStyle(fontSize: isWeb ? 16 : 14),
-                ),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size(double.infinity, isWeb ? 50 : 45),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Tutup'),
                 ),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildInfoItem(String label, String value, bool isWeb) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isWeb ? 14 : 12,
-            color: Colors.grey.shade600,
-          ),
-        ),
-        SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: isWeb ? 16 : 14,
-          ),
-        ),
-      ],
     );
   }
 }

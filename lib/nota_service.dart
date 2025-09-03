@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -82,7 +84,7 @@ class NotaService {
     return NotaModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
   }
 
-  // Upload photo to Firebase Storage
+  // Upload photo to Firebase Storage (Mobile - existing method)
   static Future<String> uploadPhoto(File photo, String notaId) async {
     try {
       final String fileName = DateTime.now().millisecondsSinceEpoch.toString();
@@ -102,6 +104,64 @@ class NotaService {
       return downloadUrl;
     } catch (e) {
       throw Exception('Error uploading photo: $e');
+    }
+  }
+
+  // NEW: Upload photo from bytes (Web compatibility)
+  static Future<String> uploadPhotoBytes(
+    Uint8List photoBytes,
+    String fileName,
+    String notaId,
+  ) async {
+    try {
+      // Generate unique filename
+      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final String extension = fileName.split('.').last.toLowerCase();
+      final String fullFileName = '${timestamp}_$fileName';
+
+      // Create storage reference
+      final Reference ref = _storage
+          .ref()
+          .child('nota_pengeluaran')
+          .child(notaId)
+          .child(fullFileName);
+
+      // Set metadata
+      final metadata = SettableMetadata(
+        contentType: _getContentType(extension),
+        customMetadata: {
+          'notaId': notaId,
+          'originalName': fileName,
+        },
+      );
+
+      // Upload bytes
+      final UploadTask uploadTask = ref.putData(photoBytes, metadata);
+      final TaskSnapshot snapshot = await uploadTask;
+      final String downloadUrl = await snapshot.ref.getDownloadURL();
+
+      return downloadUrl;
+    } catch (e) {
+      throw Exception('Error uploading photo: $e');
+    }
+  }
+
+  // NEW: Helper method to determine content type
+  static String _getContentType(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'bmp':
+        return 'image/bmp';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return 'image/jpeg';
     }
   }
 
@@ -199,21 +259,59 @@ class NotaService {
     };
   }
 
-  // Validate photo
+  // Validate photo (Mobile - existing method)
   static bool isValidPhoto(File photo) {
     final extension = photo.path.split('.').last.toLowerCase();
     return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].contains(extension);
   }
 
-  // Get file size in MB
+  // NEW: Validate photo from filename (Web compatibility)
+  static bool isValidPhotoFromName(String fileName) {
+    final extension = fileName.split('.').last.toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].contains(extension);
+  }
+
+  // Get file size in MB (Mobile - existing method)
   static double getFileSizeInMB(File file) {
     final bytes = file.lengthSync();
     return bytes / (1024 * 1024);
   }
 
-  // Check if file size is valid (max 10MB for photos)
+  // Check if file size is valid (Mobile - existing method)
   static bool isValidFileSize(File file) {
     return getFileSizeInMB(file) <= 10;
+  }
+
+  // NEW: Check if file size is valid from bytes (Web compatibility)
+  static bool isValidFileSizeBytes(Uint8List bytes) {
+    const int maxSizeInBytes = 10 * 1024 * 1024; // 10MB
+    return bytes.length <= maxSizeInBytes;
+  }
+
+  // NEW: Get file size in MB from bytes (Web compatibility)
+  static double getFileSizeInMBFromBytes(Uint8List bytes) {
+    return bytes.length / (1024 * 1024);
+  }
+
+  // NEW: Cross-platform photo validation
+  static Future<bool> validatePhoto({
+    File? file,
+    Uint8List? bytes,
+    String? fileName,
+  }) async {
+    if (kIsWeb) {
+      // Web validation
+      if (bytes == null || fileName == null) return false;
+      
+      return isValidFileSizeBytes(bytes) && 
+             isValidPhotoFromName(fileName);
+    } else {
+      // Mobile validation  
+      if (file == null) return false;
+      
+      return isValidFileSize(file) && 
+             isValidPhoto(file);
+    }
   }
 
   // Get monthly stats
