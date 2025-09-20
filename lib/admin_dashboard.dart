@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:management_event/evidence_monitor_page.dart';
 import 'user_management_page.dart';
 import 'location_management_page.dart';
+import 'project_management_page.dart'; // Tambahkan import
 import 'user_service.dart';
 import 'user_model.dart';
 
@@ -156,6 +157,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     mainAxisSpacing: 16,
                     children: [
                       _buildMenuCard(
+                        icon: Icons.folder_special,
+                        title: 'Project Management',
+                        subtitle: 'Kelola proyek event',
+                        color: Colors.purple,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProjectManagementPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildMenuCard(
                         icon: Icons.people,
                         title: 'User Management',
                         subtitle: 'Kelola pengguna sistem',
@@ -197,50 +212,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           );
                         },
                       ),
-                      // _buildMenuCard(
-                      //   icon: Icons.event,
-                      //   title: 'Event Management',
-                      //   subtitle: 'Kelola event & acara',
-                      //   color: Colors.purple,
-                      //   onTap: () {
-                      //     ScaffoldMessenger.of(context).showSnackBar(
-                      //       SnackBar(content: Text('Coming Soon!')),
-                      //     );
-                      //   },
-                      // ),
-                      // _buildMenuCard(
-                      //   icon: Icons.calendar_today,
-                      //   title: 'Booking Management',
-                      //   subtitle: 'Kelola reservasi lokasi',
-                      //   color: Colors.orange,
-                      //   onTap: () {
-                      //     ScaffoldMessenger.of(context).showSnackBar(
-                      //       SnackBar(content: Text('Coming Soon!')),
-                      //     );
-                      //   },
-                      // ),
-                      // _buildMenuCard(
-                      //   icon: Icons.analytics,
-                      //   title: 'Reports',
-                      //   subtitle: 'Laporan dan analitik',
-                      //   color: Colors.teal,
-                      //   onTap: () {
-                      //     ScaffoldMessenger.of(context).showSnackBar(
-                      //       SnackBar(content: Text('Coming Soon!')),
-                      //     );
-                      //   },
-                      // ),
-                      // _buildMenuCard(
-                      //   icon: Icons.settings,
-                      //   title: 'Settings',
-                      //   subtitle: 'Pengaturan sistem',
-                      //   color: Colors.grey,
-                      //   onTap: () {
-                      //     ScaffoldMessenger.of(context).showSnackBar(
-                      //       SnackBar(content: Text('Coming Soon!')),
-                      //     );
-                      //   },
-                      // ),
                     ],
                   ),
                 ),
