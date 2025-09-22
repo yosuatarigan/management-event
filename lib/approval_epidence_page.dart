@@ -3,8 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'evidence_model.dart';
 import 'evidence_service.dart';
 import 'user_service.dart';
+import 'session_manager.dart';
 
 class ApprovalEvidencePage extends StatefulWidget {
+  const ApprovalEvidencePage({Key? key}) : super(key: key);
+
   @override
   _ApprovalEvidencePageState createState() => _ApprovalEvidencePageState();
 }
@@ -16,6 +19,40 @@ class _ApprovalEvidencePageState extends State<ApprovalEvidencePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if current project is available
+    final currentProjectId = SessionManager.currentProjectId;
+    
+    if (currentProjectId == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('Approval Evidence'),
+          elevation: 0,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.folder_off, size: 64, color: Colors.grey.shade400),
+              SizedBox(height: 16),
+              Text(
+                'Tidak ada proyek yang dipilih',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Pilih proyek terlebih dahulu',
+                style: TextStyle(color: Colors.grey.shade500),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Approval Evidence'),
@@ -27,7 +64,7 @@ class _ApprovalEvidencePageState extends State<ApprovalEvidencePage> {
           Container(
             color: Colors.green.withOpacity(0.1),
             padding: EdgeInsets.all(16),
-            child: _buildHeaderStats(),
+            child: _buildHeaderStats(currentProjectId),
           ),
           
           // Search dan Filter
@@ -90,10 +127,13 @@ class _ApprovalEvidencePageState extends State<ApprovalEvidencePage> {
             ),
           ),
           
-          // Evidence List
+          // Evidence List - Updated to use current project
           Expanded(
             child: StreamBuilder<List<EvidenceModel>>(
-              stream: EvidenceService.getEvidenceByStatus(_statusFilter),
+              stream: EvidenceService.getEvidenceByProjectAndStatus(
+                currentProjectId,
+                _statusFilter,
+              ),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator());
@@ -133,9 +173,10 @@ class _ApprovalEvidencePageState extends State<ApprovalEvidencePage> {
     );
   }
 
-  Widget _buildHeaderStats() {
-    return StreamBuilder<Map<String, dynamic>>(
-      stream: Stream.fromFuture(EvidenceService.getEvidenceStats()),
+  Widget _buildHeaderStats(String projectId) {
+    // Updated to use project-aware stats
+    return FutureBuilder<Map<String, dynamic>>(
+      future: EvidenceService.getEvidenceStatsByProject(projectId),
       builder: (context, snapshot) {
         final stats = snapshot.data ?? {};
         final pending = stats['pending'] ?? 0;
