@@ -3,7 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:management_event/evidence_monitor_page.dart';
 import 'user_management_page.dart';
 import 'location_management_page.dart';
-import 'project_management_page.dart'; // Tambahkan import
+import 'project_management_page.dart';
+import 'user_migration_dashboard.dart';
 import 'user_service.dart';
 import 'user_model.dart';
 
@@ -148,6 +149,47 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
 
                 SizedBox(height: 16),
+
+                // Migration Alert (if needed)
+                StreamBuilder<List<UserModel>>(
+                  stream: UserService.getUsersNeedingMigration(),
+                  builder: (context, snapshot) {
+                    int migrationCount = snapshot.data?.length ?? 0;
+                    
+                    if (migrationCount == 0) return SizedBox.shrink();
+                    
+                    return Container(
+                      margin: EdgeInsets.only(bottom: 16),
+                      child: Card(
+                        color: Colors.orange.withOpacity(0.1),
+                        child: ListTile(
+                          leading: Icon(Icons.warning, color: Colors.orange),
+                          title: Text(
+                            'User Migration Required',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            '$migrationCount legacy users need project assignment',
+                          ),
+                          trailing: ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => UserMigrationDashboard(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                            ),
+                            child: Text('Migrate Now'),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
 
                 // Management Menu
                 Expanded(
