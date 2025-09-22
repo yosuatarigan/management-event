@@ -1035,7 +1035,8 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
       // Simple upload using your pattern
       final fileUrl = await uploadImage(_selectedFile, _webImage);
 
-      final evidence = EvidenceModel(
+      final evidence = EvidenceModel( 
+        projectId: '',
         evidenceId: '',
         uploadedBy: currentUser.uid,
         uploaderName: currentUserData.name,

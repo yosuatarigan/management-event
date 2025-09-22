@@ -19,6 +19,7 @@ class EvidenceModel {
   final String uploaderName;
   final String lokasiId;
   final String lokasiName;
+  final String projectId; // Tambahan field untuk proyek
   final KategoriEvidence kategori;
   final String fileUrl;
   final String? description;
@@ -34,6 +35,7 @@ class EvidenceModel {
     required this.uploaderName,
     required this.lokasiId,
     required this.lokasiName,
+    required this.projectId, // Required field
     required this.kategori,
     required this.fileUrl,
     required this.createdAt,
@@ -51,6 +53,7 @@ class EvidenceModel {
       uploaderName: map['uploader_name'] ?? '',
       lokasiId: map['lokasi_id'] ?? '',
       lokasiName: map['lokasi_name'] ?? '',
+      projectId: map['project_id'] ?? '', // Handle legacy data
       kategori: KategoriEvidence.values.firstWhere(
         (e) => e.toString().split('.').last == map['kategori'],
         orElse: () => KategoriEvidence.lainnya,
@@ -74,6 +77,7 @@ class EvidenceModel {
       'uploader_name': uploaderName,
       'lokasi_id': lokasiId,
       'lokasi_name': lokasiName,
+      'project_id': projectId, // Include projectId
       'kategori': kategori.toString().split('.').last,
       'file_url': fileUrl,
       'description': description,
@@ -160,6 +164,7 @@ class EvidenceModel {
     String? uploaderName,
     String? lokasiId,
     String? lokasiName,
+    String? projectId,
     KategoriEvidence? kategori,
     String? fileUrl,
     String? description,
@@ -175,6 +180,7 @@ class EvidenceModel {
       uploaderName: uploaderName ?? this.uploaderName,
       lokasiId: lokasiId ?? this.lokasiId,
       lokasiName: lokasiName ?? this.lokasiName,
+      projectId: projectId ?? this.projectId,
       kategori: kategori ?? this.kategori,
       fileUrl: fileUrl ?? this.fileUrl,
       description: description ?? this.description,

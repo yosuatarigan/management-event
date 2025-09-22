@@ -13,8 +13,177 @@ class EvidenceService {
     'evidence',
   );
 
-  // Get all evidence
-  /// Get ALL evidence from all users for the monitor page.
+  // ===== PROJECT-AWARE METHODS =====
+
+  // Get evidence by project ID
+  static Stream<List<EvidenceModel>> getEvidenceByProject(String projectId) {
+    return _evidenceCollection
+        .where('project_id', isEqualTo: projectId)
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs
+                  .map(
+                    (doc) => EvidenceModel.fromMap(
+                      doc.data() as Map<String, dynamic>,
+                      doc.id,
+                    ),
+                  )
+                  .toList(),
+        );
+  }
+
+  // Get evidence by project and status
+  static Stream<List<EvidenceModel>> getEvidenceByProjectAndStatus(
+    String projectId, 
+    StatusEvidence status,
+  ) {
+    return _evidenceCollection
+        .where('project_id', isEqualTo: projectId)
+        .where('status', isEqualTo: status.toString().split('.').last)
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs
+                  .map(
+                    (doc) => EvidenceModel.fromMap(
+                      doc.data() as Map<String, dynamic>,
+                      doc.id,
+                    ),
+                  )
+                  .toList(),
+        );
+  }
+
+  // Get evidence by project and kategori
+  static Stream<List<EvidenceModel>> getEvidenceByProjectAndKategori(
+    String projectId,
+    KategoriEvidence kategori,
+  ) {
+    return _evidenceCollection
+        .where('project_id', isEqualTo: projectId)
+        .where('kategori', isEqualTo: kategori.toString().split('.').last)
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs
+                  .map(
+                    (doc) => EvidenceModel.fromMap(
+                      doc.data() as Map<String, dynamic>,
+                      doc.id,
+                    ),
+                  )
+                  .toList(),
+        );
+  }
+
+  // Get evidence by project and uploader
+  static Stream<List<EvidenceModel>> getEvidenceByProjectAndUploader(
+    String projectId,
+    String uploaderId,
+  ) {
+    return _evidenceCollection
+        .where('project_id', isEqualTo: projectId)
+        .where('uploaded_by', isEqualTo: uploaderId)
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs
+                  .map(
+                    (doc) => EvidenceModel.fromMap(
+                      doc.data() as Map<String, dynamic>,
+                      doc.id,
+                    ),
+                  )
+                  .toList(),
+        );
+  }
+
+  // Get evidence count by project
+  static Future<int> getEvidenceCountByProject(String projectId) async {
+    try {
+      QuerySnapshot snapshot = await _evidenceCollection
+          .where('project_id', isEqualTo: projectId)
+          .get();
+      return snapshot.docs.length;
+    } catch (e) {
+      print('Error getting evidence count: $e');
+      return 0;
+    }
+  }
+
+  // Get statistics by project
+  static Future<Map<String, dynamic>> getEvidenceStatsByProject(String projectId) async {
+    final projectDocs = await _evidenceCollection
+        .where('project_id', isEqualTo: projectId)
+        .get();
+    final pendingDocs = await _evidenceCollection
+        .where('project_id', isEqualTo: projectId)
+        .where('status', isEqualTo: 'pending')
+        .get();
+    final approvedDocs = await _evidenceCollection
+        .where('project_id', isEqualTo: projectId)
+        .where('status', isEqualTo: 'approved')
+        .get();
+    final rejectedDocs = await _evidenceCollection
+        .where('project_id', isEqualTo: projectId)
+        .where('status', isEqualTo: 'rejected')
+        .get();
+
+    final evidenceList = projectDocs.docs
+        .map(
+          (doc) => EvidenceModel.fromMap(
+            doc.data() as Map<String, dynamic>,
+            doc.id,
+          ),
+        )
+        .toList();
+
+    final kategoriStats = <String, int>{};
+    final lokasiStats = <String, int>{};
+    final uploaderStats = <String, int>{};
+
+    for (final evidence in evidenceList) {
+      final kategori = evidence.kategoriDisplayName;
+      final lokasi = evidence.lokasiName;
+      final uploader = evidence.uploaderName;
+
+      kategoriStats[kategori] = (kategoriStats[kategori] ?? 0) + 1;
+      lokasiStats[lokasi] = (lokasiStats[lokasi] ?? 0) + 1;
+      uploaderStats[uploader] = (uploaderStats[uploader] ?? 0) + 1;
+    }
+
+    return {
+      'total': projectDocs.docs.length,
+      'pending': pendingDocs.docs.length,
+      'approved': approvedDocs.docs.length,
+      'rejected': rejectedDocs.docs.length,
+      'byKategori': kategoriStats,
+      'byLokasi': lokasiStats,
+      'byUploader': uploaderStats,
+    };
+  }
+
+  // Create evidence for specific project
+  static Future<void> createEvidenceForProject(
+    String projectId, 
+    EvidenceModel evidence,
+  ) async {
+    final docRef = _evidenceCollection.doc();
+    final evidenceWithId = evidence.copyWith(
+      evidenceId: docRef.id,
+      projectId: projectId,
+    );
+    await docRef.set(evidenceWithId.toMap());
+  }
+
+  // ===== LEGACY METHODS (Updated for project support) =====
+
+  // Get all evidence (for admin/debugging - shows all projects)
   static Stream<List<EvidenceModel>> getAllEvidence() {
     return _evidenceCollection
         .orderBy('created_at', descending: true)
@@ -41,7 +210,7 @@ class EvidenceService {
     });
   }
 
-  // Get evidence by uploader
+  // Get evidence by uploader (all projects)
   static Stream<List<EvidenceModel>> getEvidenceByUploader(String uploaderId) {
     return _evidenceCollection
         .where('uploaded_by', isEqualTo: uploaderId)
@@ -60,7 +229,7 @@ class EvidenceService {
         );
   }
 
-  // Get evidence by status
+  // Get evidence by status (all projects)
   static Stream<List<EvidenceModel>> getEvidenceByStatus(
     StatusEvidence status,
   ) {
@@ -81,7 +250,7 @@ class EvidenceService {
         );
   }
 
-  // Get evidence by kategori
+  // Get evidence by kategori (all projects)
   static Stream<List<EvidenceModel>> getEvidenceByKategori(
     KategoriEvidence kategori,
   ) {
@@ -102,7 +271,7 @@ class EvidenceService {
         );
   }
 
-  // Create evidence
+  // Create evidence (legacy - will require projectId)
   static Future<void> createEvidence(EvidenceModel evidence) async {
     final docRef = _evidenceCollection.doc();
     final evidenceWithId = evidence.copyWith(evidenceId: docRef.id);
@@ -171,7 +340,7 @@ class EvidenceService {
     }
   }
 
-  // NEW: Upload file from bytes (Web compatibility)
+  // Upload file from bytes (Web compatibility)
   static Future<String> uploadFileBytes(
     Uint8List fileBytes,
     String fileName,
@@ -213,7 +382,7 @@ class EvidenceService {
     }
   }
 
-  // NEW: Helper method to determine content type
+  // Helper method to determine content type
   static String _getContentType(String extension) {
     switch (extension.toLowerCase()) {
       // Images
@@ -292,7 +461,7 @@ class EvidenceService {
     });
   }
 
-  // Get current user evidence
+  // Get current user evidence (all projects)
   static Stream<List<EvidenceModel>> getCurrentUserEvidence() {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
@@ -301,7 +470,16 @@ class EvidenceService {
     return getEvidenceByUploader(currentUser.uid);
   }
 
-  // Get statistics
+  // Get current user evidence by project
+  static Stream<List<EvidenceModel>> getCurrentUserEvidenceByProject(String projectId) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      return Stream.value([]);
+    }
+    return getEvidenceByProjectAndUploader(projectId, currentUser.uid);
+  }
+
+  // Get statistics (all projects)
   static Future<Map<String, dynamic>> getEvidenceStats() async {
     final allDocs = await _evidenceCollection.get();
     final pendingDocs =
@@ -323,13 +501,16 @@ class EvidenceService {
 
     final kategoriStats = <String, int>{};
     final lokasiStats = <String, int>{};
+    final projectStats = <String, int>{};
 
     for (final evidence in evidenceList) {
       final kategori = evidence.kategoriDisplayName;
       final lokasi = evidence.lokasiName;
+      final projectId = evidence.projectId;
 
       kategoriStats[kategori] = (kategoriStats[kategori] ?? 0) + 1;
       lokasiStats[lokasi] = (lokasiStats[lokasi] ?? 0) + 1;
+      projectStats[projectId] = (projectStats[projectId] ?? 0) + 1;
     }
 
     return {
@@ -339,6 +520,7 @@ class EvidenceService {
       'rejected': rejectedDocs.docs.length,
       'byKategori': kategoriStats,
       'byLokasi': lokasiStats,
+      'byProject': projectStats,
     };
   }
 
@@ -383,7 +565,7 @@ class EvidenceService {
     }
   }
 
-  // NEW: Validate file type from filename (Web compatibility)
+  // Validate file type from filename (Web compatibility)
   static bool isValidFileTypeFromName(String fileName, KategoriEvidence kategori) {
     final extension = fileName.split('.').last.toLowerCase();
 
@@ -419,18 +601,18 @@ class EvidenceService {
     return getFileSizeInMB(file) <= 50;
   }
 
-  // NEW: Check if file size is valid from bytes (Web compatibility)
+  // Check if file size is valid from bytes (Web compatibility)
   static bool isValidFileSizeBytes(Uint8List bytes) {
     const int maxSizeInBytes = 50 * 1024 * 1024; // 50MB
     return bytes.length <= maxSizeInBytes;
   }
 
-  // NEW: Get file size in MB from bytes (Web compatibility)
+  // Get file size in MB from bytes (Web compatibility)
   static double getFileSizeInMBFromBytes(Uint8List bytes) {
     return bytes.length / (1024 * 1024);
   }
 
-  // NEW: Cross-platform file validation
+  // Cross-platform file validation
   static Future<bool> validateFile({
     File? file,
     Uint8List? bytes,

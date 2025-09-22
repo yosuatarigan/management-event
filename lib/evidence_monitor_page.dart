@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:management_event/user_model.dart';
 import 'evidence_service.dart';
 import 'evidence_model.dart';
+import 'project_service.dart';
+import 'project_model.dart';
 
 class AdminEvidencePage extends StatefulWidget {
   @override
@@ -14,16 +16,17 @@ class _AdminEvidencePageState extends State<AdminEvidencePage> {
   StatusEvidence? _selectedStatusFilter;
   KategoriEvidence? _selectedKategoriFilter;
   String _searchQuery = '';
+  String? _selectedProjectId;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Kelola Evidence'),
+        title: Text('Kelola Eviddence'),
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: () => _showStatsDialog(),
+            onPressed: _selectedProjectId != null ? () => _showStatsDialog() : null,
             icon: Icon(Icons.analytics),
             tooltip: 'Statistik Evidence',
           ),
@@ -31,79 +34,193 @@ class _AdminEvidencePageState extends State<AdminEvidencePage> {
       ),
       body: Column(
         children: [
-          // Search and Filter Section
+          // Project Selector
           Container(
-            color: Colors.blue.shade50,
+            color: Theme.of(context).primaryColor.withOpacity(0.1),
             padding: EdgeInsets.all(16),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Search Bar
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Cari evidence...',
-                    prefixIcon: Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
+                Text(
+                  'Pilih Proyek',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade700,
                   ),
-                  onChanged: (value) {
-                    setState(() => _searchQuery = value.toLowerCase());
-                  },
                 ),
-                SizedBox(height: 12),
+                SizedBox(height: 8),
+                StreamBuilder<List<ProjectModel>>(
+                  stream: ProjectService.getProjects(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container(
+                        height: 50,
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
 
-                // Filters
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildStatusFilter(),
-                      SizedBox(width: 8),
-                      _buildKategoriFilter(),
-                    ],
-                  ),
+                    final projects = snapshot.data!;
+                    
+                    return DropdownButtonFormField<String>(
+                      value: _selectedProjectId,
+                      decoration: InputDecoration(
+                        labelText: 'Proyek',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        prefixIcon: Icon(Icons.folder_special),
+                      ),
+                      items: projects.map((project) {
+                        return DropdownMenuItem<String>(
+                          value: project.id,
+                          child: Text(project.name),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedProjectId = value;
+                          _searchQuery = '';
+                          _selectedStatusFilter = null;
+                          _selectedKategoriFilter = null;
+                        });
+                        _searchController.clear();
+                      },
+                      hint: Text('Pilih proyek untuk mengelola evidence'),
+                    );
+                  },
                 ),
               ],
             ),
           ),
 
-          // Evidence List
-          Expanded(
-            child: StreamBuilder<List<EvidenceModel>>(
-              stream: EvidenceService.getAllEvidence(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-
-                final evidenceList = _filterEvidence(snapshot.data ?? []);
-
-                if (evidenceList.isEmpty) {
-                  return _buildEmptyState();
-                }
-
-                return GridView.builder(
-                  padding: EdgeInsets.all(16),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.75,
+          // Search and Filter Section (only show when project selected)
+          if (_selectedProjectId != null)
+            Container(
+              color: Colors.blue.shade50,
+              padding: EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Search Bar
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Cari evidence...',
+                      prefixIcon: Icon(Icons.search),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() => _searchQuery = value.toLowerCase());
+                    },
                   ),
-                  itemCount: evidenceList.length,
-                  itemBuilder: (context, index) {
-                    return _buildEvidenceCard(evidenceList[index]);
-                  },
-                );
-              },
+                  SizedBox(height: 12),
+
+                  // Filters
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildStatusFilter(),
+                        SizedBox(width: 8),
+                        _buildKategoriFilter(),
+                        SizedBox(width: 8),
+                        if (_selectedStatusFilter != null || _selectedKategoriFilter != null)
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _selectedStatusFilter = null;
+                                _selectedKategoriFilter = null;
+                              });
+                            },
+                            icon: Icon(Icons.clear, size: 16),
+                            label: Text('Reset Filter'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey.shade200,
+                              foregroundColor: Colors.grey.shade700,
+                              elevation: 0,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Evidence List or Project Selection Message
+          Expanded(
+            child: _selectedProjectId == null
+                ? _buildSelectProjectMessage()
+                : StreamBuilder<List<EvidenceModel>>(
+                    stream: EvidenceService.getEvidenceByProject(_selectedProjectId!),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
+
+                      final evidenceList = _filterEvidence(snapshot.data ?? []);
+
+                      if (evidenceList.isEmpty) {
+                        return _buildEmptyState();
+                      }
+
+                      return GridView.builder(
+                        padding: EdgeInsets.all(16),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.75,
+                        ),
+                        itemCount: evidenceList.length,
+                        itemBuilder: (context, index) {
+                          return _buildEvidenceCard(evidenceList[index]);
+                        },
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectProjectMessage() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.folder_special,
+            size: 64,
+            color: Colors.grey.shade400,
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Pilih Proyek Terlebih Dahulu',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Silakan pilih proyek untuk mengelola evidence',
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: 14,
             ),
           ),
         ],
@@ -256,7 +373,7 @@ class _AdminEvidencePageState extends State<AdminEvidencePage> {
           ),
           SizedBox(height: 16),
           Text(
-            'Belum ada evidence',
+            'Belum ada evidence di proyek ini',
             style: TextStyle(
               color: Colors.grey.shade600,
               fontSize: 16,
@@ -474,8 +591,10 @@ class _AdminEvidencePageState extends State<AdminEvidencePage> {
   }
 
   void _showStatsDialog() async {
+    if (_selectedProjectId == null) return;
+    
     try {
-      final stats = await EvidenceService.getEvidenceStats();
+      final stats = await EvidenceService.getEvidenceStatsByProject(_selectedProjectId!);
       showDialog(
         context: context,
         builder: (context) => _buildStatsDialog(stats),
@@ -501,7 +620,7 @@ class _AdminEvidencePageState extends State<AdminEvidencePage> {
                 Icon(Icons.analytics, color: Colors.blue),
                 SizedBox(width: 12),
                 Text(
-                  'Statistik Evidence',
+                  'Statistik Evidence Proyek',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
