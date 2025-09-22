@@ -9,6 +9,7 @@ enum StatusNota {
 
 class NotaModel {
   final String notaId;
+  final String projectId;  // Added
   final String koordinatorId;
   final String koordinatorName;
   final String lokasiId;
@@ -26,6 +27,7 @@ class NotaModel {
 
   NotaModel({
     required this.notaId,
+    required this.projectId,  // Added
     required this.koordinatorId,
     required this.koordinatorName,
     required this.lokasiId,
@@ -45,6 +47,7 @@ class NotaModel {
   factory NotaModel.fromMap(Map<String, dynamic> map, String id) {
     return NotaModel(
       notaId: id,
+      projectId: map['project_id'] ?? '',  // Added
       koordinatorId: map['koordinator_id'] ?? '',
       koordinatorName: map['koordinator_name'] ?? '',
       lokasiId: map['lokasi_id'] ?? '',
@@ -67,6 +70,7 @@ class NotaModel {
 
   Map<String, dynamic> toMap() {
     return {
+      'project_id': projectId,  // Added
       'koordinator_id': koordinatorId,
       'koordinator_name': koordinatorName,
       'lokasi_id': lokasiId,
@@ -140,6 +144,7 @@ class NotaModel {
 
   NotaModel copyWith({
     String? notaId,
+    String? projectId,  // Added
     String? koordinatorId,
     String? koordinatorName,
     String? lokasiId,
@@ -157,6 +162,7 @@ class NotaModel {
   }) {
     return NotaModel(
       notaId: notaId ?? this.notaId,
+      projectId: projectId ?? this.projectId,  // Added
       koordinatorId: koordinatorId ?? this.koordinatorId,
       koordinatorName: koordinatorName ?? this.koordinatorName,
       lokasiId: lokasiId ?? this.lokasiId,

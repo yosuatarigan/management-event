@@ -10,6 +10,7 @@ import 'nota_model.dart';
 import 'location_service.dart';
 import 'location_model.dart';
 import 'user_service.dart';
+import 'session_manager.dart';
 
 class NotaPage extends StatefulWidget {
   @override
@@ -22,6 +23,40 @@ class _NotaPageState extends State<NotaPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if current project is available
+    final currentProjectId = SessionManager.currentProjectId;
+    
+    if (currentProjectId == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('Nota Pengeluaran'),
+          elevation: 0,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.folder_off, size: 64, color: Colors.grey.shade400),
+              SizedBox(height: 16),
+              Text(
+                'Tidak ada proyek yang dipilih',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Pilih proyek terlebih dahulu',
+                style: TextStyle(color: Colors.grey.shade500),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 768;
     final isTablet = screenWidth > 600 && screenWidth <= 768;
@@ -42,7 +77,7 @@ class _NotaPageState extends State<NotaPage> {
             Padding(
               padding: EdgeInsets.only(right: 16),
               child: ElevatedButton.icon(
-                onPressed: () => _showAddNotaDialog(),
+                onPressed: () => _showAddNotaDialog(currentProjectId),
                 icon: Icon(Icons.add, size: 18),
                 label: Text('Tambah Nota'),
                 style: ElevatedButton.styleFrom(
@@ -54,7 +89,7 @@ class _NotaPageState extends State<NotaPage> {
             )
           else
             IconButton(
-              onPressed: () => _showAddNotaDialog(),
+              onPressed: () => _showAddNotaDialog(currentProjectId),
               icon: Icon(Icons.add),
               tooltip: 'Tambah Nota',
             ),
@@ -100,9 +135,9 @@ class _NotaPageState extends State<NotaPage> {
                 constraints: BoxConstraints(maxWidth: isWeb ? 1200 : double.infinity),
                 child: Column(
                   children: [
-                    // Total Amount Summary
+                    // Total Amount Summary - Updated to use project-aware data
                     StreamBuilder<List<NotaModel>>(
-                      stream: NotaService.getCurrentUserNota(),
+                      stream: NotaService.getCurrentUserNotaByProject(currentProjectId),
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
                           final notaList = snapshot.data!;
@@ -233,10 +268,10 @@ class _NotaPageState extends State<NotaPage> {
                       },
                     ),
                     
-                    // Nota List
+                    // Nota List - Updated to use project-aware data
                     Expanded(
                       child: StreamBuilder<List<NotaModel>>(
-                        stream: NotaService.getCurrentUserNota(),
+                        stream: NotaService.getCurrentUserNotaByProject(currentProjectId),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
                             return Center(child: CircularProgressIndicator());
@@ -249,7 +284,7 @@ class _NotaPageState extends State<NotaPage> {
                           final notaList = _filterNota(snapshot.data ?? []);
 
                           if (notaList.isEmpty) {
-                            return _buildEmptyState(isWeb);
+                            return _buildEmptyState(isWeb, currentProjectId);
                           }
 
                           return _buildNotaList(notaList, isWeb);
@@ -294,7 +329,7 @@ class _NotaPageState extends State<NotaPage> {
     }
   }
 
-  Widget _buildEmptyState(bool isWeb) {
+  Widget _buildEmptyState(bool isWeb, String projectId) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -323,7 +358,7 @@ class _NotaPageState extends State<NotaPage> {
           ),
           SizedBox(height: isWeb ? 32 : 24),
           ElevatedButton.icon(
-            onPressed: () => _showAddNotaDialog(),
+            onPressed: () => _showAddNotaDialog(projectId),
             icon: Icon(Icons.add),
             label: Text('Tambah Nota'),
             style: ElevatedButton.styleFrom(
@@ -453,10 +488,11 @@ class _NotaPageState extends State<NotaPage> {
     }).toList();
   }
 
-  void _showAddNotaDialog() {
+  void _showAddNotaDialog(String projectId) {
     showDialog(
       context: context,
       builder: (context) => AddNotaDialog(
+        projectId: projectId,
         onAdded: () {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -481,11 +517,16 @@ class _NotaPageState extends State<NotaPage> {
   }
 }
 
-// Simple Add Nota Dialog
+// Updated Add Nota Dialog with projectId
 class AddNotaDialog extends StatefulWidget {
+  final String projectId;
   final VoidCallback onAdded;
 
-  const AddNotaDialog({Key? key, required this.onAdded}) : super(key: key);
+  const AddNotaDialog({
+    Key? key, 
+    required this.projectId,
+    required this.onAdded,
+  }) : super(key: key);
 
   @override
   _AddNotaDialogState createState() => _AddNotaDialogState();
@@ -580,9 +621,9 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                       ),
                       SizedBox(height: isWeb ? 20 : 16),
                       
-                      // Lokasi
+                      // Lokasi - Updated to filter by project
                       StreamBuilder<List<LocationModel>>(
-                        stream: LocationService.getAllLocations(),
+                        stream: LocationService.getLocationsByProject(widget.projectId),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
                             return Center(child: CircularProgressIndicator());
@@ -814,7 +855,6 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
     }
   }
 
-  // Simple image picker like your example
   Future<void> _pickImage(ImageSource source) async {
     final ImagePicker picker = ImagePicker();
     
@@ -850,7 +890,6 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
     }
   }
 
-  // Simple upload like your example
   Future<String> uploadImage(File? image, Uint8List? webimage) async {
     String docnya = DateTime.now().millisecondsSinceEpoch.toString();
     final ref = FirebaseStorage.instance.ref().child('nota_pengeluaran').child(docnya);
@@ -884,15 +923,16 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
         throw Exception('User not found');
       }
 
-      // Simple upload using your pattern
       final photoUrl = await uploadImage(_selectedPhoto, _webImage);
 
+      // Updated nota model with projectId
       final nota = NotaModel(
         notaId: '',
         koordinatorId: currentUser.uid,
         koordinatorName: currentUserData.name,
         lokasiId: _selectedLokasiId,
         lokasiName: _selectedLokasiName,
+        projectId: widget.projectId, // Add projectId
         tanggal: _selectedDate,
         nominal: double.parse(_nominalController.text),
         keperluan: _keperluanController.text.trim(),
@@ -900,7 +940,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
         createdAt: DateTime.now(),
       );
 
-      await NotaService.createNota(nota);
+      await NotaService.createNotaForProject(widget.projectId, nota);
       widget.onAdded();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
