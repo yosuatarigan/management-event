@@ -49,6 +49,7 @@ dependencies:
   device_info_plus: ^11.5.0
   path: ^1.9.1
   file_picker: ^10.3.2
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
