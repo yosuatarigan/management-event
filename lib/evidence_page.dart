@@ -5,12 +5,15 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:management_event/user_model.dart';
 import 'evidence_service.dart';
 import 'evidence_model.dart';
 import 'location_service.dart';
 import 'location_model.dart';
 import 'user_service.dart';
+import 'session_manager.dart';
 
 class EvidencePage extends StatefulWidget {
   @override
@@ -22,12 +25,59 @@ class _EvidencePageState extends State<EvidencePage> {
   StatusEvidence? _selectedStatusFilter;
   KategoriEvidence? _selectedKategoriFilter;
   String _searchQuery = '';
+  String? _currentProjectId;
+  bool _isLoadingProject = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentProject();
+  }
+
+  Future<void> _loadCurrentProject() async {
+    try {
+      _currentProjectId = await SessionManager.getCurrentProject();
+    } catch (e) {
+      print('Error loading current project: $e');
+    }
+    setState(() => _isLoadingProject = false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 768;
     final isTablet = screenWidth > 600 && screenWidth <= 768;
+
+    if (_isLoadingProject) {
+      return Scaffold(
+        appBar: AppBar(title: Text('Evidence')),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_currentProjectId == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text('Evidence')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 64, color: Colors.orange),
+              SizedBox(height: 16),
+              Text(
+                'Tidak ada proyek aktif',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'Silakan pilih proyek terlebih dahulu',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -124,7 +174,7 @@ class _EvidencePageState extends State<EvidencePage> {
           // Evidence List
           Expanded(
             child: StreamBuilder<List<EvidenceModel>>(
-              stream: EvidenceService.getCurrentUserEvidence(),
+              stream: EvidenceService.getEvidenceByProject(_currentProjectId!),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator());
@@ -340,7 +390,7 @@ class _EvidencePageState extends State<EvidencePage> {
           ),
           SizedBox(height: 8),
           Text(
-            'Upload evidence pertama Anda',
+            'Upload evidence pertama untuk proyek ini',
             style: TextStyle(
               color: Colors.grey.shade500,
               fontSize: isWeb ? 16 : 14,
@@ -392,15 +442,7 @@ class _EvidencePageState extends State<EvidencePage> {
                     borderRadius: BorderRadius.vertical(
                       top: Radius.circular(isWeb ? 16 : 12),
                     ),
-                    child: evidence.isImage
-                        ? Image.network(
-                            evidence.fileUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return _buildFileIcon(evidence, isWeb);
-                            },
-                          )
-                        : _buildFileIcon(evidence, isWeb),
+                    child: _buildFilePreview(evidence, isWeb),
                   ),
                 ),
               ),
@@ -506,6 +548,54 @@ class _EvidencePageState extends State<EvidencePage> {
     );
   }
 
+  Widget _buildFilePreview(EvidenceModel evidence, bool isWeb) {
+    switch (evidence.kategori) {
+      case KategoriEvidence.foto:
+        return Image.network(
+          evidence.fileUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildFileIcon(evidence, isWeb);
+          },
+        );
+      
+      case KategoriEvidence.video:
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: evidence.kategoriColor.withOpacity(0.1),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(isWeb ? 16 : 12)),
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.videocam,
+                  size: isWeb ? 48 : 40,
+                  color: evidence.kategoriColor,
+                ),
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.play_arrow,
+                color: Colors.white,
+                size: isWeb ? 24 : 20,
+              ),
+            ),
+          ],
+        );
+      
+      default:
+        return _buildFileIcon(evidence, isWeb);
+    }
+  }
+
   Widget _buildFileIcon(EvidenceModel evidence, bool isWeb) {
     return Container(
       decoration: BoxDecoration(
@@ -556,6 +646,7 @@ class _EvidencePageState extends State<EvidencePage> {
     showDialog(
       context: context,
       builder: (context) => EvidenceUploadDialog(
+        projectId: _currentProjectId!,
         onUploaded: () {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -580,11 +671,16 @@ class _EvidencePageState extends State<EvidencePage> {
   }
 }
 
-// Simple Upload Dialog
+// Enhanced Upload Dialog with better file support
 class EvidenceUploadDialog extends StatefulWidget {
+  final String projectId;
   final VoidCallback onUploaded;
 
-  const EvidenceUploadDialog({Key? key, required this.onUploaded}) : super(key: key);
+  const EvidenceUploadDialog({
+    Key? key, 
+    required this.projectId,
+    required this.onUploaded,
+  }) : super(key: key);
 
   @override
   _EvidenceUploadDialogState createState() => _EvidenceUploadDialogState();
@@ -593,14 +689,14 @@ class EvidenceUploadDialog extends StatefulWidget {
 class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
-  final ImagePicker _picker = ImagePicker();
 
   String _selectedLokasiId = '';
   String _selectedLokasiName = '';
   KategoriEvidence _selectedKategori = KategoriEvidence.foto;
   
   File? _selectedFile;
-  Uint8List? _webImage;
+  Uint8List? _webFile;
+  String? _fileName;
   bool _isUploading = false;
 
   UserModel? _currentUser;
@@ -615,23 +711,32 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
   Future<void> _loadUserDataAndSetLocation() async {
     final user = await UserService.getCurrentUser();
 
-    if (user != null &&
-        user.role == UserRole.koordinator &&
-        user.locationId != null &&
-        user.locationId!.isNotEmpty) {
-      final locations = await LocationService.getAllLocations().first;
+    if (user != null && user.role == UserRole.koordinator && user.locationId != null && user.locationId!.isNotEmpty) {
+      // Untuk koordinator, cari lokasi di current project yang match dengan user.locationId
       try {
-        final userLocation = locations.firstWhere(
-          (loc) => loc.id == user.locationId,
-        );
-        setState(() {
-          _selectedLokasiId = userLocation.id;
-          _selectedLokasiName = '${userLocation.name} - ${userLocation.city}';
-        });
+        final currentProjectLocations = await LocationService.getLocationsByProject(widget.projectId).first;
+        
+        // Cari lokasi yang match dengan user.locationId DI PROJECT YANG SEDANG AKTIF
+        final userLocation = currentProjectLocations.where((loc) => loc.id == user.locationId).firstOrNull;
+        
+        if (userLocation != null) {
+          setState(() {
+            _selectedLokasiId = userLocation.id;
+            _selectedLokasiName = '${userLocation.name} - ${userLocation.city}';
+          });
+        } else {
+          // Jika lokasi koordinator tidak ada di project ini, biarkan koordinator pilih manual
+          print('Koordinator location not found in current project, allowing manual selection');
+          setState(() {
+            _selectedLokasiName = '';
+            _selectedLokasiId = '';
+          });
+        }
       } catch (e) {
-        print('Error: Lokasi untuk koordinator tidak ditemukan: $e');
+        print('Error finding coordinator location in current project: $e');
         setState(() {
-          _selectedLokasiName = 'Lokasi tidak valid';
+          _selectedLokasiName = '';
+          _selectedLokasiId = '';
         });
       }
     }
@@ -642,7 +747,6 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
     });
   }
 
-  // Simple image picker like your example
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     if (kIsWeb) {
@@ -650,8 +754,9 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
       if (pickedFile != null) {
         final webImage = await pickedFile.readAsBytes();
         setState(() {
-          _webImage = webImage;
+          _webFile = webImage;
           _selectedFile = null;
+          _fileName = pickedFile.name;
         });
       }
     } else {
@@ -659,7 +764,8 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
       if (pickedFile != null) {
         setState(() {
           _selectedFile = File(pickedFile.path);
-          _webImage = null;
+          _webFile = null;
+          _fileName = pickedFile.name;
         });
       }
     }
@@ -676,21 +782,75 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
       if (pickedFile != null) {
         setState(() {
           _selectedFile = File(pickedFile.path);
-          _webImage = null;
+          _webFile = null;
+          _fileName = pickedFile.name;
         });
       }
     }
   }
 
-  // Simple upload like your example
-  Future<String> uploadImage(File? image, Uint8List? webimage) async {
-    String docnya = DateTime.now().millisecondsSinceEpoch.toString();
-    final ref = FirebaseStorage.instance.ref().child('evidence').child(docnya);
-
-    if (webimage == null) {
-      await ref.putFile(image!);
+  Future<void> _pickVideo() async {
+    final ImagePicker picker = ImagePicker();
+    if (kIsWeb) {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.video,
+        allowMultiple: false,
+      );
+      if (result != null && result.files.single.bytes != null) {
+        setState(() {
+          _webFile = result.files.single.bytes!;
+          _selectedFile = null;
+          _fileName = result.files.single.name;
+        });
+      }
     } else {
-      await ref.putData(webimage);
+      final pickedFile = await picker.pickVideo(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        setState(() {
+          _selectedFile = File(pickedFile.path);
+          _webFile = null;
+          _fileName = pickedFile.name;
+        });
+      }
+    }
+  }
+
+  Future<void> _pickDocument() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx', 'ppt', 'pptx'],
+      allowMultiple: false,
+    );
+    
+    if (result != null) {
+      if (kIsWeb) {
+        setState(() {
+          _webFile = result.files.single.bytes!;
+          _selectedFile = null;
+          _fileName = result.files.single.name;
+        });
+      } else {
+        setState(() {
+          _selectedFile = File(result.files.single.path!);
+          _webFile = null;
+          _fileName = result.files.single.name;
+        });
+      }
+    }
+  }
+
+  Future<String> _uploadFile() async {
+    String docnya = DateTime.now().millisecondsSinceEpoch.toString();
+    final ref = FirebaseStorage.instance.ref()
+        .child('evidence')
+        .child(widget.projectId)
+        .child(_selectedKategori.toString().split('.').last)
+        .child(docnya);
+
+    if (_webFile == null) {
+      await ref.putFile(_selectedFile!);
+    } else {
+      await ref.putData(_webFile!);
     }
 
     return await ref.getDownloadURL();
@@ -715,14 +875,23 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
             Container(
               padding: EdgeInsets.all(isWeb ? 24 : 20),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                gradient: LinearGradient(
+                  colors: [Colors.green.shade50, Colors.green.shade100],
+                ),
                 borderRadius: BorderRadius.vertical(
                   top: Radius.circular(isWeb ? 20 : 16),
                 ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.upload_file, color: Colors.green, size: isWeb ? 24 : 20),
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade600,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.upload_file, color: Colors.white, size: 20),
+                  ),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -730,6 +899,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                       style: TextStyle(
                         fontSize: isWeb ? 20 : 18,
                         fontWeight: FontWeight.bold,
+                        color: Colors.green.shade800,
                       ),
                     ),
                   ),
@@ -755,7 +925,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                               padding: const EdgeInsets.symmetric(vertical: 24.0),
                               child: Center(child: CircularProgressIndicator()),
                             )
-                          : (_currentUser?.role == UserRole.koordinator)
+                          : (_currentUser?.role == UserRole.koordinator && _selectedLokasiId.isNotEmpty)
                               ? TextFormField(
                                   initialValue: _selectedLokasiName,
                                   readOnly: true,
@@ -770,7 +940,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                                   ),
                                 )
                               : StreamBuilder<List<LocationModel>>(
-                                  stream: LocationService.getAllLocations(),
+                                  stream: LocationService.getLocationsByProject(widget.projectId),
                                   builder: (context, snapshot) {
                                     if (snapshot.connectionState ==
                                         ConnectionState.waiting) {
@@ -779,6 +949,30 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                                       );
                                     }
                                     final locations = snapshot.data ?? [];
+                                    
+                                    if (locations.isEmpty) {
+                                      return Container(
+                                        padding: EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange.shade50,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Colors.orange.shade200),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.warning_amber, color: Colors.orange.shade600),
+                                            SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                'Belum ada lokasi di proyek ini. Silakan tambah lokasi terlebih dahulu.',
+                                                style: TextStyle(color: Colors.orange.shade600),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                    
                                     return DropdownButtonFormField<String>(
                                       value: _selectedLokasiId.isEmpty
                                           ? null
@@ -788,6 +982,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                                         border: OutlineInputBorder(
                                           borderRadius: BorderRadius.circular(12),
                                         ),
+                                        prefixIcon: Icon(Icons.location_on_outlined),
                                       ),
                                       items: locations.map((location) {
                                         return DropdownMenuItem(
@@ -823,131 +1018,34 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          prefixIcon: Icon(_getKategoriIcon(_selectedKategori)),
                         ),
                         items: KategoriEvidence.values.map((kategori) {
-                          String displayName;
-                          switch (kategori) {
-                            case KategoriEvidence.foto:
-                              displayName = 'Foto';
-                              break;
-                            case KategoriEvidence.video:
-                              displayName = 'Video';
-                              break;
-                            case KategoriEvidence.dokumen:
-                              displayName = 'Dokumen';
-                              break;
-                            case KategoriEvidence.lainnya:
-                              displayName = 'Lainnya';
-                              break;
-                          }
                           return DropdownMenuItem(
                             value: kategori,
-                            child: Text(displayName),
+                            child: Row(
+                              children: [
+                                Icon(_getKategoriIcon(kategori), size: 20),
+                                SizedBox(width: 8),
+                                Text(_getKategoriDisplayName(kategori)),
+                              ],
+                            ),
                           );
                         }).toList(),
-                        onChanged: (value) => setState(() => _selectedKategori = value!),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedKategori = value!;
+                            // Clear selected file when changing category
+                            _selectedFile = null;
+                            _webFile = null;
+                            _fileName = null;
+                          });
+                        },
                       ),
                       SizedBox(height: isWeb ? 20 : 16),
 
                       // File Upload Section
-                      Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(isWeb ? 20 : 16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          children: [
-                            if (_selectedFile == null && _webImage == null) ...[
-                              Icon(
-                                Icons.cloud_upload_outlined,
-                                size: isWeb ? 56 : 48,
-                                color: Colors.grey.shade400,
-                              ),
-                              SizedBox(height: 12),
-                              Text(
-                                'Pilih gambar untuk diupload',
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: isWeb ? 16 : 14,
-                                ),
-                              ),
-                              SizedBox(height: isWeb ? 20 : 16),
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 8,
-                                alignment: WrapAlignment.center,
-                                children: [
-                                  if (!kIsWeb)
-                                    ElevatedButton.icon(
-                                      onPressed: _captureImage,
-                                      icon: Icon(Icons.camera_alt, size: 20),
-                                      label: Text('Kamera'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue,
-                                        foregroundColor: Colors.white,
-                                      ),
-                                    ),
-                                  ElevatedButton.icon(
-                                    onPressed: _pickImage,
-                                    icon: Icon(Icons.photo_library, size: 20),
-                                    label: Text(kIsWeb ? 'Pilih File' : 'Galeri'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ] else ...[
-                              // Image Preview
-                              Container(
-                                height: isWeb ? 150 : 120,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: _webImage != null
-                                      ? Image.memory(_webImage!, fit: BoxFit.cover)
-                                      : Image.file(_selectedFile!, fit: BoxFit.cover),
-                                ),
-                              ),
-                              SizedBox(height: 12),
-                              Wrap(
-                                spacing: 12,
-                                children: [
-                                  ElevatedButton.icon(
-                                    onPressed: () => setState(() {
-                                      _selectedFile = null;
-                                      _webImage = null;
-                                    }),
-                                    icon: Icon(Icons.delete, size: 20),
-                                    label: Text('Hapus'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                  ElevatedButton.icon(
-                                    onPressed: _pickImage,
-                                    icon: Icon(Icons.refresh, size: 20),
-                                    label: Text('Ganti'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.orange,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
+                      _buildFileUploadSection(isWeb),
                       SizedBox(height: isWeb ? 20 : 16),
 
                       // Description
@@ -959,6 +1057,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           hintText: 'Tambahkan deskripsi untuk evidence ini...',
+                          prefixIcon: Icon(Icons.description),
                         ),
                         maxLines: 3,
                       ),
@@ -985,7 +1084,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                   SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isUploading || (_selectedFile == null && _webImage == null) 
+                      onPressed: _isUploading || (_selectedFile == null && _webFile == null) 
                           ? null 
                           : _uploadEvidence,
                       child: _isUploading
@@ -1000,6 +1099,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                           : Text('Upload'),
                       style: ElevatedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 12),
+                        backgroundColor: Colors.green.shade600,
                       ),
                     ),
                   ),
@@ -1012,10 +1112,247 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
     );
   }
 
+  Widget _buildFileUploadSection(bool isWeb) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isWeb ? 20 : 16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          if (_selectedFile == null && _webFile == null) ...[
+            Icon(
+              _getKategoriIcon(_selectedKategori),
+              size: isWeb ? 56 : 48,
+              color: _getKategoriColor(_selectedKategori),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Pilih ${_getKategoriDisplayName(_selectedKategori)} untuk diupload',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+                fontSize: isWeb ? 16 : 14,
+              ),
+            ),
+            SizedBox(height: isWeb ? 20 : 16),
+            _buildUploadButtons(isWeb),
+          ] else ...[
+            // File Preview
+            Container(
+              height: isWeb ? 150 : 120,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: _buildFilePreview(isWeb),
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              _fileName ?? 'Unknown file',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: isWeb ? 14 : 12,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => setState(() {
+                    _selectedFile = null;
+                    _webFile = null;
+                    _fileName = null;
+                  }),
+                  icon: Icon(Icons.delete, size: 20),
+                  label: Text('Hapus'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => _handleFileSelection(),
+                  icon: Icon(Icons.refresh, size: 20),
+                  label: Text('Ganti'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUploadButtons(bool isWeb) {
+    switch (_selectedKategori) {
+      case KategoriEvidence.foto:
+        return Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children: [
+            if (!kIsWeb)
+              ElevatedButton.icon(
+                onPressed: _captureImage,
+                icon: Icon(Icons.camera_alt, size: 20),
+                label: Text('Kamera'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ElevatedButton.icon(
+              onPressed: _pickImage,
+              icon: Icon(Icons.photo_library, size: 20),
+              label: Text(kIsWeb ? 'Pilih Foto' : 'Galeri'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        );
+      
+      case KategoriEvidence.video:
+        return ElevatedButton.icon(
+          onPressed: _pickVideo,
+          icon: Icon(Icons.videocam, size: 20),
+          label: Text('Pilih Video'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+          ),
+        );
+      
+      case KategoriEvidence.dokumen:
+        return ElevatedButton.icon(
+          onPressed: _pickDocument,
+          icon: Icon(Icons.description, size: 20),
+          label: Text('Pilih Dokumen'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.purple,
+            foregroundColor: Colors.white,
+          ),
+        );
+      
+      default:
+        return ElevatedButton.icon(
+          onPressed: _pickDocument,
+          icon: Icon(Icons.folder, size: 20),
+          label: Text('Pilih File'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.grey,
+            foregroundColor: Colors.white,
+          ),
+        );
+    }
+  }
+
+  Widget _buildFilePreview(bool isWeb) {
+    if (_selectedKategori == KategoriEvidence.foto && 
+        (_webFile != null || _selectedFile != null)) {
+      return _webFile != null
+          ? Image.memory(_webFile!, fit: BoxFit.cover)
+          : Image.file(_selectedFile!, fit: BoxFit.cover);
+    }
+    
+    return Container(
+      color: _getKategoriColor(_selectedKategori).withOpacity(0.1),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _getKategoriIcon(_selectedKategori),
+              size: isWeb ? 48 : 40,
+              color: _getKategoriColor(_selectedKategori),
+            ),
+            SizedBox(height: 8),
+            Text(
+              _getKategoriDisplayName(_selectedKategori),
+              style: TextStyle(
+                color: _getKategoriColor(_selectedKategori),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleFileSelection() {
+    switch (_selectedKategori) {
+      case KategoriEvidence.foto:
+        _pickImage();
+        break;
+      case KategoriEvidence.video:
+        _pickVideo();
+        break;
+      case KategoriEvidence.dokumen:
+      case KategoriEvidence.lainnya:
+        _pickDocument();
+        break;
+    }
+  }
+
+  String _getKategoriDisplayName(KategoriEvidence kategori) {
+    switch (kategori) {
+      case KategoriEvidence.foto:
+        return 'Foto';
+      case KategoriEvidence.video:
+        return 'Video';
+      case KategoriEvidence.dokumen:
+        return 'Dokumen';
+      case KategoriEvidence.lainnya:
+        return 'Lainnya';
+    }
+  }
+
+  IconData _getKategoriIcon(KategoriEvidence kategori) {
+    switch (kategori) {
+      case KategoriEvidence.foto:
+        return Icons.photo;
+      case KategoriEvidence.video:
+        return Icons.videocam;
+      case KategoriEvidence.dokumen:
+        return Icons.description;
+      case KategoriEvidence.lainnya:
+        return Icons.folder;
+    }
+  }
+
+  Color _getKategoriColor(KategoriEvidence kategori) {
+    switch (kategori) {
+      case KategoriEvidence.foto:
+        return Colors.blue;
+      case KategoriEvidence.video:
+        return Colors.red;
+      case KategoriEvidence.dokumen:
+        return Colors.green;
+      case KategoriEvidence.lainnya:
+        return Colors.grey;
+    }
+  }
+
   Future<void> _uploadEvidence() async {
     if (!_formKey.currentState!.validate()) return;
     
-    if (_selectedFile == null && _webImage == null) {
+    if (_selectedFile == null && _webFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Pilih file terlebih dahulu')),
       );
@@ -1032,11 +1369,10 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
         throw Exception('User not found');
       }
 
-      // Simple upload using your pattern
-      final fileUrl = await uploadImage(_selectedFile, _webImage);
+      final fileUrl = await _uploadFile();
 
       final evidence = EvidenceModel( 
-        projectId: '',
+        projectId: widget.projectId,
         evidenceId: '',
         uploadedBy: currentUser.uid,
         uploaderName: currentUserData.name,
@@ -1050,7 +1386,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
         createdAt: DateTime.now(),
       );
 
-      await EvidenceService.createEvidence(evidence);
+      await EvidenceService.createEvidenceForProject(widget.projectId, evidence);
       widget.onUploaded();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1068,7 +1404,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
   }
 }
 
-// Detail Dialog - Simple version
+// Enhanced Detail Dialog with download support
 class EvidenceDetailDialog extends StatelessWidget {
   final EvidenceModel evidence;
 
@@ -1099,7 +1435,14 @@ class EvidenceDetailDialog extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(evidence.kategoriIcon, color: evidence.kategoriColor),
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: evidence.kategoriColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(evidence.kategoriIcon, color: Colors.white),
+                  ),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -1140,7 +1483,7 @@ class EvidenceDetailDialog extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // File Preview
+                    // File Preview/Action
                     Container(
                       width: double.infinity,
                       height: isWeb ? 250 : 200,
@@ -1150,36 +1493,46 @@ class EvidenceDetailDialog extends StatelessWidget {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: evidence.isImage
-                            ? Image.network(
-                                evidence.fileUrl,
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Center(child: Icon(Icons.error)),
-                              )
-                            : Center(
-                                child: Icon(
-                                  evidence.kategoriIcon,
-                                  size: 56,
-                                  color: evidence.kategoriColor,
-                                ),
-                              ),
+                        child: _buildFileDisplay(isWeb),
                       ),
                     ),
                     SizedBox(height: 20),
 
+                    // Action buttons for different file types
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _openFile(),
+                            icon: Icon(_getActionIcon()),
+                            label: Text(_getActionText()),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: evidence.kategoriColor,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                        if (evidence.kategori != KategoriEvidence.foto) ...[
+                          SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: () => _downloadFile(),
+                            icon: Icon(Icons.download),
+                            label: Text('Download'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey.shade600,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    SizedBox(height: 20),
+
                     // Info
-                    Text('Lokasi: ${evidence.lokasiName}',
-                        style: TextStyle(fontSize: 16)),
-                    SizedBox(height: 8),
-                    Text('Uploader: ${evidence.uploaderName}',
-                        style: TextStyle(fontSize: 16)),
-                    SizedBox(height: 8),
-                    Text('Tanggal: ${evidence.formattedDate}',
-                        style: TextStyle(fontSize: 16)),
-                    SizedBox(height: 8),
-                    Text('Kategori: ${evidence.kategoriDisplayName}',
-                        style: TextStyle(fontSize: 16)),
+                    _buildInfoRow('Lokasi', evidence.lokasiName, Icons.location_on),
+                    _buildInfoRow('Uploader', evidence.uploaderName, Icons.person),
+                    _buildInfoRow('Tanggal', evidence.formattedDate, Icons.calendar_today),
+                    _buildInfoRow('Kategori', evidence.kategoriDisplayName, Icons.category),
 
                     // Description
                     if (evidence.description != null &&
@@ -1189,7 +1542,14 @@ class EvidenceDetailDialog extends StatelessWidget {
                           style: TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 16)),
                       SizedBox(height: 8),
-                      Text(evidence.description!, style: TextStyle(fontSize: 16)),
+                      Container(
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(evidence.description!, style: TextStyle(fontSize: 16)),
+                      ),
                     ],
 
                     // Rejection reason
@@ -1206,12 +1566,18 @@ class EvidenceDetailDialog extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Alasan Penolakan:',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red.shade700,
-                              ),
+                            Row(
+                              children: [
+                                Icon(Icons.error, color: Colors.red.shade700, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Alasan Penolakan:',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red.shade700,
+                                  ),
+                                ),
+                              ],
                             ),
                             SizedBox(height: 8),
                             Text(
@@ -1242,5 +1608,111 @@ class EvidenceDetailDialog extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildFileDisplay(bool isWeb) {
+    switch (evidence.kategori) {
+      case KategoriEvidence.foto:
+        return Image.network(
+          evidence.fileUrl,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) =>
+              Center(child: Icon(Icons.error)),
+        );
+      
+      default:
+        return Container(
+          color: evidence.kategoriColor.withOpacity(0.1),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  evidence.kategoriIcon,
+                  size: isWeb ? 64 : 48,
+                  color: evidence.kategoriColor,
+                ),
+                SizedBox(height: 12),
+                Text(
+                  evidence.kategoriDisplayName,
+                  style: TextStyle(
+                    fontSize: isWeb ? 18 : 16,
+                    fontWeight: FontWeight.w500,
+                    color: evidence.kategoriColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+    }
+  }
+
+  Widget _buildInfoRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: Colors.grey.shade600),
+          SizedBox(width: 12),
+          Text(
+            '$label: ',
+            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+          ),
+          Expanded(
+            child: Text(value, style: TextStyle(fontSize: 16)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getActionIcon() {
+    switch (evidence.kategori) {
+      case KategoriEvidence.foto:
+        return Icons.zoom_in;
+      case KategoriEvidence.video:
+        return Icons.play_arrow;
+      default:
+        return Icons.open_in_new;
+    }
+  }
+
+  String _getActionText() {
+    switch (evidence.kategori) {
+      case KategoriEvidence.foto:
+        return 'Lihat Full';
+      case KategoriEvidence.video:
+        return 'Putar Video';
+      default:
+        return 'Buka File';
+    }
+  }
+
+  Future<void> _openFile() async {
+    try {
+      final Uri uri = Uri.parse(evidence.fileUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        throw 'Could not launch ${evidence.fileUrl}';
+      }
+    } catch (e) {
+      print('Error opening file: $e');
+    }
+  }
+
+  Future<void> _downloadFile() async {
+    try {
+      final Uri uri = Uri.parse(evidence.fileUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not download ${evidence.fileUrl}';
+      }
+    } catch (e) {
+      print('Error downloading file: $e');
+    }
   }
 }
