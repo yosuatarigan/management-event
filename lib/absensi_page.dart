@@ -6,6 +6,7 @@ import 'location_service.dart';
 import 'location_model.dart';
 import 'user_service.dart';
 import 'user_model.dart';
+import 'session_manager.dart';
 
 class AbsensiPage extends StatefulWidget {
   @override
@@ -36,10 +37,44 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
     }
   }
 
+  Widget _buildNoProjectSelected(bool isWeb) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.folder_off,
+            size: isWeb ? 80 : 64,
+            color: Colors.grey.shade400,
+          ),
+          SizedBox(height: isWeb ? 24 : 16),
+          Text(
+            'Tidak Ada Project Dipilih',
+            style: TextStyle(
+              fontSize: isWeb ? 20 : 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Pilih project terlebih dahulu untuk menggunakan fitur absensi',
+            style: TextStyle(
+              fontSize: isWeb ? 16 : 14,
+              color: Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 768;
+    final currentProjectId = SessionManager.currentProjectId;
 
     return Scaffold(
       appBar: AppBar(
@@ -52,7 +87,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
         ),
         elevation: 0,
         centerTitle: !isWeb,
-        bottom: TabBar(
+        bottom: currentProjectId != null ? TabBar(
           controller: _tabController,
           tabs: [
             Tab(
@@ -66,19 +101,21 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
               iconMargin: EdgeInsets.only(bottom: isWeb ? 8 : 4),
             ),
           ],
-        ),
+        ) : null,
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildTodayTab(isWeb),
-          _buildHistoryTab(isWeb),
-        ],
-      ),
+      body: currentProjectId == null 
+          ? _buildNoProjectSelected(isWeb)
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildTodayTab(isWeb, currentProjectId),
+                _buildHistoryTab(isWeb),
+              ],
+            ),
     );
   }
 
-  Widget _buildTodayTab(bool isWeb) {
+  Widget _buildTodayTab(bool isWeb, String projectId) {
     return Column(
       children: [
         // Date Selector & Stats
@@ -176,7 +213,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
                       width: double.infinity,
                       padding: EdgeInsets.all(isWeb ? 24 : 16),
                       child: ElevatedButton.icon(
-                        onPressed: _showBulkAbsensiDialog,
+                        onPressed: () => _showBulkAbsensiDialog(projectId),
                         icon: Icon(Icons.group_add),
                         label: Text(
                           'Absensi Massal',
@@ -196,7 +233,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
                   
                   // Bawahan List
                   Expanded(
-                    child: _buildBawahanList(isWeb),
+                    child: _buildBawahanList(isWeb, projectId),
                   ),
                 ],
               ),
@@ -257,7 +294,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
     }
   }
 
-  Widget _buildBawahanList(bool isWeb) {
+  Widget _buildBawahanList(bool isWeb, String projectId) {
     return StreamBuilder<List<UserModel>>(
       stream: AbsensiService.getAllBawahan(),
       builder: (context, bawahanSnapshot) {
@@ -302,7 +339,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
                 itemBuilder: (context, index) {
                   final bawahan = bawahanList[index];
                   final absensi = absensiMap[bawahan.id];
-                  return _buildBawahanCard(bawahan, absensi, isWeb);
+                  return _buildBawahanCard(bawahan, absensi, isWeb, projectId);
                 },
               );
             } else {
@@ -313,7 +350,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
                 itemBuilder: (context, index) {
                   final bawahan = bawahanList[index];
                   final absensi = absensiMap[bawahan.id];
-                  return _buildBawahanCard(bawahan, absensi, isWeb);
+                  return _buildBawahanCard(bawahan, absensi, isWeb, projectId);
                 },
               );
             }
@@ -338,9 +375,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
               return Center(child: Text('Error: ${snapshot.error}'));
             }
 
-            final recentAbsensi = (snapshot.data ?? [])
-                .take(20)
-                .toList();
+            final recentAbsensi = snapshot.data ?? [];
 
             if (recentAbsensi.isEmpty) {
               return Center(
@@ -433,7 +468,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
           ),
           SizedBox(height: isWeb ? 24 : 16),
           Text(
-            'Tidak ada bawahan terdaftar',
+            'Tidak ada bawahan di project ini',
             style: TextStyle(
               color: Colors.grey.shade600,
               fontSize: isWeb ? 20 : 16,
@@ -442,18 +477,19 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
           ),
           SizedBox(height: 8),
           Text(
-            'Hubungi admin untuk menambah bawahan',
+            'Hubungi admin untuk menambah bawahan ke project',
             style: TextStyle(
               color: Colors.grey.shade500,
               fontSize: isWeb ? 16 : 14,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBawahanCard(UserModel bawahan, AbsensiModel? absensi, bool isWeb) {
+  Widget _buildBawahanCard(UserModel bawahan, AbsensiModel? absensi, bool isWeb, String projectId) {
     return Card(
       margin: isWeb ? EdgeInsets.zero : EdgeInsets.only(bottom: 12),
       elevation: isWeb ? 4 : 2,
@@ -551,7 +587,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
             // Action Button
             if (absensi == null)
               ElevatedButton(
-                onPressed: () => _showAbsensiDialog(bawahan),
+                onPressed: () => _showAbsensiDialog(bawahan, projectId),
                 child: Text(
                   'Absen', 
                   style: TextStyle(fontSize: isWeb ? 14 : 12),
@@ -568,7 +604,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
               )
             else
               IconButton(
-                onPressed: () => _showAbsensiDialog(bawahan, absensi),
+                onPressed: () => _showAbsensiDialog(bawahan, projectId, absensi),
                 icon: Icon(
                   Icons.edit, 
                   color: Colors.grey.shade600,
@@ -653,7 +689,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
     }
   }
 
-  void _showAbsensiDialog(UserModel bawahan, [AbsensiModel? existingAbsensi]) {
+  void _showAbsensiDialog(UserModel bawahan, String projectId, [AbsensiModel? existingAbsensi]) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 768;
 
@@ -719,9 +755,9 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Lokasi dropdown
+                        // Lokasi dropdown - hanya untuk project ini
                         StreamBuilder<List<LocationModel>>(
-                          stream: LocationService.getAllLocations(),
+                          stream: LocationService.getLocationsByProject(projectId),
                           builder: (context, snapshot) {
                             final locations = snapshot.data ?? [];
                             
@@ -910,7 +946,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
     }
   }
 
-  void _showBulkAbsensiDialog() {
+  void _showBulkAbsensiDialog(String projectId) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 768;
 
@@ -976,7 +1012,7 @@ class _AbsensiPageState extends State<AbsensiPage> with TickerProviderStateMixin
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         StreamBuilder<List<LocationModel>>(
-                          stream: LocationService.getAllLocations(),
+                          stream: LocationService.getLocationsByProject(projectId),
                           builder: (context, snapshot) {
                             final locations = snapshot.data ?? [];
                             
