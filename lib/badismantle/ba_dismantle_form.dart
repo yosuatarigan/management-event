@@ -29,9 +29,19 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
   void initState() {
     super.initState();
     
-    // Initialize B controllers
+    // Initialize dengan data sample untuk testing
+    _tilokController.text = 'Jakarta Pusat';
+    _alamatController.text = 'Jl. Sudirman No. 123, Jakarta';
+    _pesertaController.text = '100';
+    _hariController.text = 'Senin';
+    _tanggalController.text = '15';
+    _bulanController.text = 'Januari';
+    _koordinatorController.text = 'Budi Santoso';
+    _pengawasController.text = 'Ahmad Rizki';
+    _nipPengawasController.text = '198501012010011001';
+    
     for (int i in [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,19,20,21,22,23,24,25,26,27,28,29,30,32,34,35,36,38,39]) {
-      _bControllers['b$i'] = TextEditingController();
+      _bControllers['b$i'] = TextEditingController(text: '2');
     }
 
     if (widget.docId != null) {
@@ -71,10 +81,12 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(widget.docId == null ? 'Tambah BA Dismantle' : 'Edit BA Dismantle'),
         backgroundColor: Colors.blue[700],
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -83,57 +95,117 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  _buildSection('Informasi Umum', [
-                    _buildTextField('Titik Lokasi (TILOK)', _tilokController),
-                    _buildTextField('Alamat', _alamatController, maxLines: 2),
-                    _buildTextField('Jumlah Peserta', _pesertaController, isNumber: true),
-                    _buildTextField('Hari', _hariController),
-                    _buildTextField('Tanggal', _tanggalController),
-                    _buildTextField('Bulan', _bulanController),
-                    _buildTextField('Koordinator', _koordinatorController),
-                    _buildTextField('Pengawas', _pengawasController),
-                    _buildTextField('NIP Pengawas', _nipPengawasController),
-                  ]),
+                  _buildSectionCard(
+                    icon: Icons.info_outline,
+                    title: 'Informasi Umum',
+                    color: Colors.blue,
+                    children: [
+                      _buildTextField('Titik Lokasi (TILOK)', _tilokController, Icons.location_on),
+                      _buildTextField('Alamat', _alamatController, Icons.home, maxLines: 2),
+                      _buildTextField('Jumlah Peserta', _pesertaController, Icons.people, isNumber: true),
+                      Row(
+                        children: [
+                          Expanded(child: _buildTextField('Hari', _hariController, Icons.calendar_today)),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildTextField('Tanggal', _tanggalController, Icons.date_range)),
+                        ],
+                      ),
+                      _buildTextField('Bulan', _bulanController, Icons.event),
+                      _buildTextField('Koordinator', _koordinatorController, Icons.person),
+                      _buildTextField('Pengawas', _pengawasController, Icons.supervisor_account),
+                      _buildTextField('NIP Pengawas', _nipPengawasController, Icons.badge),
+                    ],
+                  ),
                   
-                  _buildSection('Sarana Prasarana', [
-                    _buildNumberField('UPS Router/Switch (B1)', 'b1'),
-                    _buildNumberField('UPS Modem Internet (B2)', 'b2'),
-                    _buildNumberField('Metal Detector (B3)', 'b3'),
-                    _buildNumberField('Laptop Registrasi (B4)', 'b4'),
-                    _buildNumberField('Webcam Registrasi (B5)', 'b5'),
-                    _buildNumberField('Barcode Scanner (B6)', 'b6'),
-                    _buildNumberField('LED Ring Light (B7)', 'b7'),
-                    _buildNumberField('Printer Registrasi (B8)', 'b8'),
-                    _buildNumberField('Laptop Monitoring (B9)', 'b9'),
-                    _buildNumberField('Webcam Monitoring (B10)', 'b10'),
-                    _buildNumberField('Printer Panitia (B11)', 'b11'),
-                    _buildNumberField('Laptop Admin (B12)', 'b12'),
-                    _buildNumberField('Container Box (B13)', 'b13'),
-                    _buildNumberField('LCD Projector (B14)', 'b14'),
-                    _buildNumberField('Laptop LCD (B15)', 'b15'),
-                    _buildNumberField('CCTV (B16)', 'b16'),
-                    _buildNumberField('TV LCD (B19)', 'b19'),
-                    _buildNumberField('Hardisk 2TB (B20)', 'b20'),
-                    _buildNumberField('Meja Cover Ujian (B21)', 'b21'),
-                    _buildNumberField('Kursi Cover Ujian (B22)', 'b22'),
-                    _buildNumberField('Meja Penitipan (B23)', 'b23'),
-                    _buildNumberField('Kursi Penitipan (B24)', 'b24'),
-                    _buildNumberField('Meja Transit (B25)', 'b25'),
-                    _buildNumberField('Kursi Transit (B26)', 'b26'),
-                    _buildNumberField('Kursi Peserta Transit (B27)', 'b27'),
-                    _buildNumberField('Meja Registrasi (B28)', 'b28'),
-                    _buildNumberField('Kursi Registrasi (B29)', 'b29'),
-                  ]),
+                  _buildSectionCard(
+                    icon: Icons.computer,
+                    title: 'Peralatan Komputer & Jaringan',
+                    color: Colors.purple,
+                    children: [
+                      _buildNumberField('UPS Router/Switch Hub', 'b1'),
+                      _buildNumberField('UPS Modem Internet & Switch', 'b2'),
+                      _buildNumberField('Laptop Registrasi', 'b4'),
+                      _buildNumberField('Laptop Monitoring', 'b9'),
+                      _buildNumberField('Laptop Admin', 'b12'),
+                      _buildNumberField('Laptop LCD Projector', 'b15'),
+                    ],
+                  ),
                   
-                  _buildSection('Tenda & AC', [
-                    _buildNumberField('Tenda Semi Dekor (m2) (B30)', 'b30'),
-                    _buildNumberField('Tenda Sarnafil (m2) (B32)', 'b32'),
-                    _buildNumberField('Pembatas Antrian (B34)', 'b34'),
-                    _buildNumberField('Sound Portable (B35)', 'b35'),
-                    _buildNumberField('AC Standing (B36)', 'b36'),
-                    _buildNumberField('Misty Fan (B38)', 'b38'),
-                    _buildNumberField('Genset KVA (B39)', 'b39'),
-                  ]),
+                  _buildSectionCard(
+                    icon: Icons.devices_other,
+                    title: 'Peralatan Registrasi & Keamanan',
+                    color: Colors.orange,
+                    children: [
+                      _buildNumberField('Metal Detector', 'b3'),
+                      _buildNumberField('Webcam Registrasi', 'b5'),
+                      _buildNumberField('LED Ring Light', 'b7'),
+                      _buildNumberField('Barcode Scanner', 'b6'),
+                      _buildNumberField('Printer Registrasi', 'b8'),
+                    ],
+                  ),
+
+                  _buildSectionCard(
+                    icon: Icons.videocam,
+                    title: 'Peralatan Monitoring & Display',
+                    color: Colors.teal,
+                    children: [
+                      _buildNumberField('Webcam Monitoring', 'b10'),
+                      _buildNumberField('CCTV', 'b16'),
+                      _buildNumberField('LCD Projector', 'b14'),
+                      _buildNumberField('TV LCD + Standing Bracket', 'b19'),
+                      _buildNumberField('Hardisk 2TB', 'b20'),
+                    ],
+                  ),
+
+                  _buildSectionCard(
+                    icon: Icons.print,
+                    title: 'Peralatan Kantor',
+                    color: Colors.indigo,
+                    children: [
+                      _buildNumberField('Printer Panitia Ruang Ujian', 'b11'),
+                      _buildNumberField('Container Box', 'b13'),
+                    ],
+                  ),
+                  
+                  _buildSectionCard(
+                    icon: Icons.chair,
+                    title: 'Meja & Kursi',
+                    color: Colors.brown,
+                    children: [
+                      _buildNumberField('Meja Cover Ujian', 'b21'),
+                      _buildNumberField('Kursi Cover Ujian', 'b22'),
+                      _buildNumberField('Meja Penitipan Barang', 'b23'),
+                      _buildNumberField('Kursi Penitipan', 'b24'),
+                      _buildNumberField('Meja Transit', 'b25'),
+                      _buildNumberField('Kursi Transit', 'b26'),
+                      _buildNumberField('Kursi Peserta', 'b27'),
+                      _buildNumberField('Meja Registrasi', 'b28'),
+                      _buildNumberField('Kursi Registrasi', 'b29'),
+                    ],
+                  ),
+                  
+                  _buildSectionCard(
+                    icon: Icons.home_work,
+                    title: 'Tenda & Pendingin',
+                    color: Colors.green,
+                    children: [
+                      _buildNumberField('Tenda Semi Dekor (m²)', 'b30'),
+                      _buildNumberField('Tenda Sarnafil (m²)', 'b32'),
+                      _buildNumberField('AC Standing', 'b36'),
+                      _buildNumberField('Misty Fan', 'b38'),
+                    ],
+                  ),
+
+                  _buildSectionCard(
+                    icon: Icons.settings,
+                    title: 'Peralatan Lainnya',
+                    color: Colors.red,
+                    children: [
+                      _buildNumberField('Pembatas Antrian', 'b34'),
+                      _buildNumberField('Sound Portable', 'b35'),
+                      _buildNumberField('Genset (KVA)', 'b39'),
+                    ],
+                  ),
 
                   const SizedBox(height: 24),
                   ElevatedButton(
@@ -142,35 +214,79 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
                       backgroundColor: Colors.blue[700],
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
                     ),
-                    child: Text(widget.docId == null ? 'Simpan' : 'Update'),
+                    child: Text(
+                      widget.docId == null ? 'Simpan BA' : 'Update BA',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
                   ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildSection(String title, List<Widget> children) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 16),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.blue,
+  Widget _buildSectionCard({
+    required IconData icon,
+    required String title,
+    required Color color,
+    required List<Widget> children,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
-        ),
-        const Divider(),
-        ...children,
-      ],
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 24),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(children: children),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller,
+  Widget _buildTextField(String label, TextEditingController controller, IconData icon,
       {bool isNumber = false, int maxLines = 1}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -178,8 +294,13 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
         controller: controller,
         decoration: InputDecoration(
           labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          prefixIcon: Icon(icon, size: 20),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          filled: true,
+          fillColor: Colors.grey[50],
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         maxLines: maxLines,
@@ -200,8 +321,13 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
         controller: _bControllers[key],
         decoration: InputDecoration(
           labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          prefixIcon: const Icon(Icons.numbers, size: 20),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          filled: true,
+          fillColor: Colors.grey[50],
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
         keyboardType: TextInputType.number,
         validator: (value) {
@@ -234,11 +360,11 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
         'koordinator': _koordinatorController.text,
         'pengawas': _pengawasController.text,
         'nipPengawas': _nipPengawasController.text,
-        'createdAt': FieldValue.serverTimestamp(),
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
       };
 
       _bControllers.forEach((key, controller) {
-        data[key] = int.parse(controller.text);
+        data[key] = int.tryParse(controller.text) ?? 0;
       });
 
       if (widget.docId == null) {
@@ -250,16 +376,25 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
             .update(data);
       }
 
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.docId == null ? 'BA berhasil disimpan' : 'BA berhasil diupdate')),
-      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(widget.docId == null ? 'BA berhasil disimpan' : 'BA berhasil diupdate'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

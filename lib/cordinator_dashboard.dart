@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'berita_acara_page.dart';
+import 'ba_selection_page.dart';
 import 'evidence_page.dart';
 import 'nota_page.dart';
 import 'absensi_page.dart';
