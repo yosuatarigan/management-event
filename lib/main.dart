@@ -16,7 +16,7 @@ void main() async {
           projectId: "sky-lab-edc2e",
           storageBucket: "sky-lab-edc2e.appspot.com",
           messagingSenderId: "723045892957",
-          appId: "1:723045892957:web:ac9ce2c5c32d637b219eb4",
+          appId: "1:723045892957:web:ac9ce2c5c32d637b219eb4", 
         ),
       )
       : await Firebase.initializeApp();
