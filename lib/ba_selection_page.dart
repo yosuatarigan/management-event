@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:management_event/badismantle/list_ba_dismantle.dart';
 import 'package:management_event/baharian/ba_harian_list_page.dart';
+import 'package:management_event/baperubahanvolume/list_ba_perubahan_volume.dart';
 
 class BASelectionPage extends StatelessWidget {
   const BASelectionPage({Key? key}) : super(key: key);
@@ -99,7 +100,12 @@ class BASelectionPage extends StatelessWidget {
                         title: 'BA Perubahan Volume',
                         subtitle: 'Perubahan volume pekerjaan',
                         color: Colors.orange,
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const BAPerubahanVolumeListPage()),
+                          );
+                        },
                       ),
                       _buildBACard(
                         context,
