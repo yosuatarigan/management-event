@@ -571,7 +571,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => BeritaAcaraPage(),
+                builder: (context) => BASelectionPage(),
               ),
             );
           } : null,
