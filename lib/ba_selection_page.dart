@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:management_event/badismantle/list_ba_dismantle.dart';
+import 'package:management_event/baharian/ba_harian_list_page.dart';
 
 class BASelectionPage extends StatelessWidget {
   const BASelectionPage({Key? key}) : super(key: key);
@@ -85,7 +86,12 @@ class BASelectionPage extends StatelessWidget {
                         title: 'BA Harian',
                         subtitle: 'Berita acara harian',
                         color: Colors.green,
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const BAHarianListPage()),
+                          );
+                        },
                       ),
                       _buildBACard(
                         context,
