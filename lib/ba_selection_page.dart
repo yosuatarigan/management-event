@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:management_event/badismantle/list_ba_dismantle.dart';
 import 'package:management_event/baharian/ba_harian_list_page.dart';
 import 'package:management_event/baperubahanvolume/list_ba_perubahan_volume.dart';
+import 'package:management_event/baperubahanvolumediluarkontrak/ba_perubahan_volume_luar_kontrak_list_page.dart';
 
 class BASelectionPage extends StatelessWidget {
   const BASelectionPage({Key? key}) : super(key: key);
@@ -109,11 +110,16 @@ class BASelectionPage extends StatelessWidget {
                       ),
                       _buildBACard(
                         context,
-                        icon: Icons.description_outlined,
-                        title: 'BA Perubahan Volume di luar Kontrak',
-                        subtitle: 'Perubahan di luar kontrak',
+                        icon: Icons.add_box_outlined,
+                        title: 'BA Penambahan Volume di Luar Kontrak',
+                        subtitle: 'Penambahan volume di luar kontrak',
                         color: Colors.purple,
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const BAPerubahanVolumeLuarKontrakListPage()),
+                          );
+                        },
                       ),
                       _buildBACard(
                         context,
