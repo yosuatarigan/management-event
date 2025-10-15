@@ -3,6 +3,7 @@ import 'package:management_event/badismantle/list_ba_dismantle.dart';
 import 'package:management_event/baharian/ba_harian_list_page.dart';
 import 'package:management_event/baperubahanvolume/list_ba_perubahan_volume.dart';
 import 'package:management_event/baperubahanvolumediluarkontrak/ba_perubahan_volume_luar_kontrak_list_page.dart';
+import 'package:management_event/baujifungsi/list_ba_uji_fungsi.dart';
 
 class BASelectionPage extends StatelessWidget {
   final String role; // 'coordinator' atau 'approver'
@@ -170,7 +171,15 @@ class BASelectionPage extends StatelessWidget {
                                 ? 'Pengujian fungsi peralatan'
                                 : 'Approve pengujian fungsi peralatan',
                         color: Colors.teal,
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => BAUjiFungsiListPage(role: role),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
