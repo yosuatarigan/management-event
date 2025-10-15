@@ -78,7 +78,9 @@ class BASelectionPage extends StatelessWidget {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const BADismantleListPage()),
+                            MaterialPageRoute(
+                              builder: (context) => const BADismantleListPage(),
+                            ),
                           );
                         },
                       ),
@@ -91,7 +93,9 @@ class BASelectionPage extends StatelessWidget {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const BAHarianListPage()),
+                            MaterialPageRoute(
+                              builder: (context) => const BAHarianListPage(),
+                            ),
                           );
                         },
                       ),
@@ -104,7 +108,11 @@ class BASelectionPage extends StatelessWidget {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const BAPerubahanVolumeListPage()),
+                            MaterialPageRoute(
+                              builder:
+                                  (context) =>
+                                      const BAPerubahanVolumeListPage(),
+                            ),
                           );
                         },
                       ),
@@ -117,7 +125,11 @@ class BASelectionPage extends StatelessWidget {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const BAPerubahanVolumeLuarKontrakListPage()),
+                            MaterialPageRoute(
+                              builder:
+                                  (context) =>
+                                      const BAPerubahanVolumeLuarKontrakListPage(),
+                            ),
                           );
                         },
                       ),
@@ -127,14 +139,6 @@ class BASelectionPage extends StatelessWidget {
                         title: 'BA Uji Fungsi',
                         subtitle: 'Pengujian fungsi peralatan',
                         color: Colors.teal,
-                        onTap: () {},
-                      ),
-                      _buildBACard(
-                        context,
-                        icon: Icons.photo_library_outlined,
-                        title: 'Template Laporan Visual Kegiatan',
-                        subtitle: 'Dokumentasi visual kegiatan',
-                        color: Colors.pink,
                         onTap: () {},
                       ),
                     ],
@@ -175,10 +179,7 @@ class BASelectionPage extends StatelessWidget {
                   offset: const Offset(0, 4),
                 ),
               ],
-              border: Border.all(
-                color: color.withOpacity(0.3),
-                width: 1,
-              ),
+              border: Border.all(color: color.withOpacity(0.3), width: 1),
             ),
             child: Row(
               children: [
@@ -205,10 +206,7 @@ class BASelectionPage extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ),
