@@ -126,7 +126,7 @@ class BASelectionPage extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const BAPerubahanVolumeListPage(),
+                              builder: (context) => BAPerubahanVolumeListPage(role: role),
                             ),
                           );
                         },

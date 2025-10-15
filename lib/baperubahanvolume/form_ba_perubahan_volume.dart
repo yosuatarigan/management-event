@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:management_event/session_manager.dart';
 
 class BAPerubahanVolumeFormPage extends StatefulWidget {
   final String? docId;
@@ -48,36 +49,40 @@ class _BAPerubahanVolumeFormPageState extends State<BAPerubahanVolumeFormPage> {
   void initState() {
     super.initState();
     
-    // Sample data
-    _tilokController.text = 'Jakarta Pusat';
-    _alamatController.text = 'Jl. Sudirman No. 123, Jakarta';
-    _pesertaController.text = '100';
-    _hariController.text = 'Senin';
-    _tanggalController.text = '15';
-    _bulanController.text = 'Januari';
-    _koordinatorController.text = 'Budi Santoso';
-    _pengawasController.text = 'Ahmad Rizki';
-    _nipPengawasController.text = '198501012010011001';
-    
-    _b30lController.text = '50';
-    _b30bController.text = '60';
-    _k1Controller.text = 'Penambahan';
-    
-    _b32lController.text = '25';
-    _b32bController.text = '25';
-    _k2Controller.text = 'Sesuai kontrak';
-    
-    _b36lController.text = '4';
-    _b36bController.text = '5';
-    _k3Controller.text = 'Penambahan';
-    
-    _b38lController.text = '3';
-    _b38bController.text = '2';
-    _k4Controller.text = 'Pengurangan';
-
     if (widget.docId != null) {
       _loadData();
+    } else {
+      // Sample data untuk form baru
+      _loadSampleData();
     }
+  }
+
+  void _loadSampleData() {
+    _tilokController.text = 'Jakarta Convention Center';
+    _alamatController.text = 'Jl. Gatot Subroto Kav. 52-53, Jakarta Selatan';
+    _pesertaController.text = '150';
+    _hariController.text = 'Selasa';
+    _tanggalController.text = '21';
+    _bulanController.text = 'Januari';
+    _koordinatorController.text = 'Budi Santoso';
+    _pengawasController.text = 'Dr. Ahmad Rizki, M.T.';
+    _nipPengawasController.text = '198501012010011001';
+    
+    _b30lController.text = '200';
+    _b30bController.text = '250';
+    _k1Controller.text = 'Penambahan 50 m² sesuai kebutuhan lapangan';
+    
+    _b32lController.text = '100';
+    _b32bController.text = '100';
+    _k2Controller.text = 'Sesuai kontrak';
+    
+    _b36lController.text = '6';
+    _b36bController.text = '8';
+    _k3Controller.text = 'Penambahan 2 unit untuk area VIP';
+    
+    _b38lController.text = '4';
+    _b38bController.text = '3';
+    _k4Controller.text = 'Pengurangan 1 unit karena area terlindungi';
   }
 
   Future<void> _loadData() async {
@@ -138,6 +143,33 @@ class _BAPerubahanVolumeFormPageState extends State<BAPerubahanVolumeFormPage> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  // Info Banner - Sample Data
+                  if (widget.docId == null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Form sudah terisi dengan data contoh. Langsung klik Simpan untuk testing.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange[700],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                   _buildSectionCard(
                     icon: Icons.info_outline,
                     title: 'Informasi Umum',
@@ -167,7 +199,7 @@ class _BAPerubahanVolumeFormPageState extends State<BAPerubahanVolumeFormPage> {
                     children: [
                       _buildTextField('Jumlah Kontrak (m²)', _b30lController, Icons.numbers, isNumber: true),
                       _buildTextField('Jumlah Terpasang (m²)', _b30bController, Icons.numbers, isNumber: true),
-                      _buildTextField('Keterangan', _k1Controller, Icons.note),
+                      _buildTextField('Keterangan', _k1Controller, Icons.note, maxLines: 2),
                     ],
                   ),
                   
@@ -178,7 +210,7 @@ class _BAPerubahanVolumeFormPageState extends State<BAPerubahanVolumeFormPage> {
                     children: [
                       _buildTextField('Jumlah Kontrak (m²)', _b32lController, Icons.numbers, isNumber: true),
                       _buildTextField('Jumlah Terpasang (m²)', _b32bController, Icons.numbers, isNumber: true),
-                      _buildTextField('Keterangan', _k2Controller, Icons.note),
+                      _buildTextField('Keterangan', _k2Controller, Icons.note, maxLines: 2),
                     ],
                   ),
                   
@@ -189,7 +221,7 @@ class _BAPerubahanVolumeFormPageState extends State<BAPerubahanVolumeFormPage> {
                     children: [
                       _buildTextField('Jumlah Kontrak (unit)', _b36lController, Icons.numbers, isNumber: true),
                       _buildTextField('Jumlah Terpasang (unit)', _b36bController, Icons.numbers, isNumber: true),
-                      _buildTextField('Keterangan', _k3Controller, Icons.note),
+                      _buildTextField('Keterangan', _k3Controller, Icons.note, maxLines: 2),
                     ],
                   ),
                   
@@ -200,7 +232,7 @@ class _BAPerubahanVolumeFormPageState extends State<BAPerubahanVolumeFormPage> {
                     children: [
                       _buildTextField('Jumlah Kontrak (unit)', _b38lController, Icons.numbers, isNumber: true),
                       _buildTextField('Jumlah Terpasang (unit)', _b38bController, Icons.numbers, isNumber: true),
-                      _buildTextField('Keterangan', _k4Controller, Icons.note),
+                      _buildTextField('Keterangan', _k4Controller, Icons.note, maxLines: 2),
                     ],
                   ),
 
@@ -314,10 +346,22 @@ class _BAPerubahanVolumeFormPageState extends State<BAPerubahanVolumeFormPage> {
   Future<void> _saveData() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final currentProjectId = SessionManager.currentProjectId;
+    if (currentProjectId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: Tidak ada proyek aktif'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
       Map<String, dynamic> data = {
+        'projectId': currentProjectId,
         'tilok': _tilokController.text,
         'alamat': _alamatController.text,
         'peserta': int.parse(_pesertaController.text),
@@ -339,12 +383,15 @@ class _BAPerubahanVolumeFormPageState extends State<BAPerubahanVolumeFormPage> {
         'b38l': int.tryParse(_b38lController.text) ?? 0,
         'b38b': int.tryParse(_b38bController.text) ?? 0,
         'k4': _k4Controller.text,
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'status': 'draft',
+        'createdAt': FieldValue.serverTimestamp(),
       };
 
       if (widget.docId == null) {
         await FirebaseFirestore.instance.collection('ba_perubahan_volume').add(data);
       } else {
+        data.remove('createdAt');
+        data['updatedAt'] = FieldValue.serverTimestamp();
         await FirebaseFirestore.instance
             .collection('ba_perubahan_volume')
             .doc(widget.docId)

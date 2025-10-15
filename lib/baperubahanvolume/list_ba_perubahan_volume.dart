@@ -2,23 +2,49 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:management_event/baperubahanvolume/form_ba_perubahan_volume.dart';
 import 'package:management_event/baperubahanvolume/view_ba_perubahan_volume.dart';
+import 'package:management_event/session_manager.dart';
 
 class BAPerubahanVolumeListPage extends StatelessWidget {
-  const BAPerubahanVolumeListPage({Key? key}) : super(key: key);
+  final String role; // 'coordinator' atau 'approver'
+
+  const BAPerubahanVolumeListPage({Key? key, required this.role}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final currentProjectId = SessionManager.currentProjectId;
+
+    if (currentProjectId == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('BA Perubahan Volume'),
+          backgroundColor: Colors.orange[700],
+          foregroundColor: Colors.white,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.folder_off, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              const Text('Tidak ada proyek aktif'),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('BA Perubahan Volume'),
-        backgroundColor: Colors.orange[700],
+        title: Text(role == 'coordinator' ? 'BA Perubahan Volume' : 'Approval BA Perubahan Volume'),
+        backgroundColor: role == 'coordinator' ? Colors.orange[700] : Colors.green[700],
         foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('ba_perubahan_volume')
+            .where('projectId', isEqualTo: currentProjectId)
             .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
@@ -47,14 +73,16 @@ class BAPerubahanVolumeListPage extends StatelessWidget {
                   Icon(Icons.folder_open, size: 80, color: Colors.grey[300]),
                   const SizedBox(height: 16),
                   Text(
-                    'Belum ada BA',
+                    role == 'coordinator' ? 'Belum ada BA' : 'Belum ada BA untuk di-approve',
                     style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap tombol + untuk membuat BA baru',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                  ),
+                  if (role == 'coordinator') ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tap tombol + untuk membuat BA baru',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    ),
+                  ],
                 ],
               ),
             );
@@ -66,6 +94,13 @@ class BAPerubahanVolumeListPage extends StatelessWidget {
             itemBuilder: (context, index) {
               var doc = snapshot.data!.docs[index];
               var data = doc.data() as Map<String, dynamic>;
+
+              String status = data['status'] ?? 'draft';
+              Color statusColor = status == 'approved'
+                  ? Colors.green
+                  : status == 'pending'
+                      ? Colors.orange
+                      : Colors.grey;
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -79,6 +114,10 @@ class BAPerubahanVolumeListPage extends StatelessWidget {
                       offset: const Offset(0, 2),
                     ),
                   ],
+                  border: Border.all(
+                    color: statusColor.withOpacity(0.3),
+                    width: 1,
+                  ),
                 ),
                 child: Material(
                   color: Colors.transparent,
@@ -87,7 +126,10 @@ class BAPerubahanVolumeListPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BAPerubahanVolumeViewPage(docId: doc.id),
+                          builder: (context) => BAPerubahanVolumeViewPage(
+                            docId: doc.id,
+                            role: role,
+                          ),
                         ),
                       );
                     },
@@ -100,19 +142,23 @@ class BAPerubahanVolumeListPage extends StatelessWidget {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Colors.orange[400]!, Colors.orange[700]!],
+                                colors: [statusColor.withOpacity(0.7), statusColor],
                               ),
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.orange.withOpacity(0.3),
+                                  color: statusColor.withOpacity(0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
-                            child: const Icon(
-                              Icons.swap_horiz_rounded,
+                            child: Icon(
+                              status == 'approved'
+                                  ? Icons.check_circle_outline
+                                  : status == 'pending'
+                                      ? Icons.pending_outlined
+                                      : Icons.swap_horiz_rounded,
                               color: Colors.white,
                               size: 28,
                             ),
@@ -122,117 +168,170 @@ class BAPerubahanVolumeListPage extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  data['tilok'] ?? 'No Title',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        data['tilok'] ?? 'No Title',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: status == 'approved'
+                                            ? Colors.green[50]
+                                            : status == 'pending'
+                                                ? Colors.orange[50]
+                                                : Colors.grey[50],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        status == 'approved'
+                                            ? 'Approved'
+                                            : status == 'pending'
+                                                ? 'Pending'
+                                                : 'Draft',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: statusColor,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
-                                    Icon(
-                                      Icons.calendar_today,
-                                      size: 14,
-                                      color: Colors.grey[600],
-                                    ),
+                                    Icon(Icons.calendar_today,
+                                        size: 14, color: Colors.grey[600]),
                                     const SizedBox(width: 4),
                                     Text(
                                       '${data['hari']}, ${data['tanggal']} ${data['bulan']} 2025',
                                       style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey[600],
-                                      ),
+                                          fontSize: 13, color: Colors.grey[600]),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Icon(
-                                      Icons.people,
-                                      size: 14,
-                                      color: Colors.grey[600],
-                                    ),
+                                    Icon(Icons.people,
+                                        size: 14, color: Colors.grey[600]),
                                     const SizedBox(width: 4),
                                     Text(
                                       '${data['peserta']} peserta',
                                       style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey[600],
-                                      ),
+                                          fontSize: 13, color: Colors.grey[600]),
                                     ),
                                   ],
                                 ),
+                                if (role == 'approver' && status == 'pending') ...[
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.hourglass_empty,
+                                          size: 14, color: Colors.orange[600]),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Menunggu approval Anda',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.orange[700],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ],
                             ),
                           ),
-                          PopupMenuButton<String>(
-                            icon: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[100],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.more_vert, size: 20),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            itemBuilder: (context) => [
-                              PopupMenuItem<String>(
-                                value: 'view',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.visibility, size: 20, color: Colors.orange[700]),
-                                    const SizedBox(width: 12),
-                                    const Text('Lihat'),
-                                  ],
+                          if (role == 'coordinator')
+                            PopupMenuButton<String>(
+                              icon: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
+                                child: const Icon(Icons.more_vert, size: 20),
                               ),
-                              PopupMenuItem<String>(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit, size: 20, color: Colors.blue[700]),
-                                    const SizedBox(width: 12),
-                                    const Text('Edit'),
-                                  ],
-                                ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              const PopupMenuDivider(),
-                              const PopupMenuItem<String>(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.delete, size: 20, color: Colors.red),
-                                    SizedBox(width: 12),
-                                    Text('Hapus', style: TextStyle(color: Colors.red)),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            onSelected: (value) {
-                              if (value == 'view') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => BAPerubahanVolumeViewPage(docId: doc.id),
+                              itemBuilder: (context) => [
+                                PopupMenuItem<String>(
+                                  value: 'view',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.visibility,
+                                          size: 20, color: Colors.orange[700]),
+                                      const SizedBox(width: 12),
+                                      const Text('Lihat'),
+                                    ],
                                   ),
-                                );
-                              } else if (value == 'edit') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => BAPerubahanVolumeFormPage(docId: doc.id),
+                                ),
+                                if (status == 'draft')
+                                  PopupMenuItem<String>(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit,
+                                            size: 20, color: Colors.blue[700]),
+                                        const SizedBox(width: 12),
+                                        const Text('Edit'),
+                                      ],
+                                    ),
                                   ),
-                                );
-                              } else if (value == 'delete') {
-                                _showDeleteDialog(context, doc.id);
-                              }
-                            },
-                          ),
+                                if (status == 'draft') const PopupMenuDivider(),
+                                if (status == 'draft')
+                                  const PopupMenuItem<String>(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete,
+                                            size: 20, color: Colors.red),
+                                        SizedBox(width: 12),
+                                        Text('Hapus',
+                                            style: TextStyle(color: Colors.red)),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                              onSelected: (value) {
+                                if (value == 'view') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          BAPerubahanVolumeViewPage(
+                                        docId: doc.id,
+                                        role: role,
+                                      ),
+                                    ),
+                                  );
+                                } else if (value == 'edit') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          BAPerubahanVolumeFormPage(docId: doc.id),
+                                    ),
+                                  );
+                                } else if (value == 'delete') {
+                                  _showDeleteDialog(context, doc.id);
+                                }
+                              },
+                            )
+                          else
+                            Icon(Icons.arrow_forward_ios,
+                                size: 16, color: Colors.grey[400]),
                         ],
                       ),
                     ),
@@ -243,17 +342,21 @@ class BAPerubahanVolumeListPage extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const BAPerubahanVolumeFormPage()),
-          );
-        },
-        backgroundColor: Colors.orange[700],
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Buat BA', style: TextStyle(color: Colors.white)),
-      ),
+      floatingActionButton: role == 'coordinator'
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const BAPerubahanVolumeFormPage()),
+                );
+              },
+              backgroundColor: Colors.orange[700],
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text('Buat BA',
+                  style: TextStyle(color: Colors.white)),
+            )
+          : null,
     );
   }
 
@@ -269,7 +372,8 @@ class BAPerubahanVolumeListPage extends StatelessWidget {
             const Text('Hapus BA'),
           ],
         ),
-        content: const Text('Yakin ingin menghapus BA ini? Data tidak dapat dikembalikan.'),
+        content: const Text(
+            'Yakin ingin menghapus BA ini? Data tidak dapat dikembalikan.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
