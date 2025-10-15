@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:management_event/approval_epidence_page.dart';
+import 'package:management_event/ba_selection_page.dart';
 import 'approval_ba_page.dart';
 import 'user_service.dart';
 import 'user_model.dart';
@@ -32,13 +33,15 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
     try {
       // Load current user
       currentUser = await UserService.getCurrentUser();
-      
+
       // Load current project
       _currentProjectId = await SessionManager.getCurrentProject();
       if (_currentProjectId != null) {
-        currentProject = await ProjectService.getProjectById(_currentProjectId!);
+        currentProject = await ProjectService.getProjectById(
+          _currentProjectId!,
+        );
       }
-      
+
       // Load available projects untuk user ini (untuk project switcher)
       if (currentUser != null) {
         if (currentUser!.isAdmin) {
@@ -47,9 +50,12 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
         } else {
           // User biasa hanya yang di-assign
           final allProjects = await ProjectService.getProjects().first;
-          availableProjects = allProjects
-              .where((project) => currentUser!.projectIds.contains(project.id))
-              .toList();
+          availableProjects =
+              allProjects
+                  .where(
+                    (project) => currentUser!.projectIds.contains(project.id),
+                  )
+                  .toList();
         }
       }
 
@@ -65,9 +71,11 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
 
   Future<void> _loadProjectStats() async {
     if (_currentProjectId == null) return;
-    
+
     try {
-      final evidenceStats = await EvidenceService.getEvidenceStatsByProject(_currentProjectId!);
+      final evidenceStats = await EvidenceService.getEvidenceStatsByProject(
+        _currentProjectId!,
+      );
       setState(() {
         _evidenceStats = evidenceStats;
       });
@@ -80,22 +88,22 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
     try {
       await SessionManager.clearSession();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error signing out')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error signing out')));
     }
   }
 
   Future<void> _switchProject(String newProjectId) async {
     if (newProjectId == currentProject?.id) return;
-    
+
     try {
       await SessionManager.setCurrentProject(newProjectId);
-      
+
       // Reload dashboard data dengan proyek baru
       setState(() => _isLoading = true);
       await _loadDashboardData();
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Berhasil beralih ke proyek ${currentProject?.name}'),
@@ -146,8 +154,9 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 768;
-    
-    final totalPending = (_evidenceStats['pending'] ?? 0) + 5; // 5 untuk BA pending (hardcoded)
+
+    final totalPending =
+        (_evidenceStats['pending'] ?? 0) + 5; // 5 untuk BA pending (hardcoded)
     final evidencePending = _evidenceStats['pending'] ?? 0;
     final baPending = 5; // Hardcoded untuk sekarang
 
@@ -171,46 +180,58 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                 icon: Icon(Icons.folder_special),
                 tooltip: 'Ganti Proyek',
                 onSelected: _switchProject,
-                itemBuilder: (context) => availableProjects.map((project) {
-                  final isCurrentProject = project.id == currentProject?.id;
-                  return PopupMenuItem<String>(
-                    value: project.id!,
-                    child: Row(
-                      children: [
-                        Icon(
-                          isCurrentProject ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                          color: isCurrentProject ? Colors.green : Colors.grey,
-                          size: 18,
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                project.name,
-                                style: TextStyle(
-                                  fontWeight: isCurrentProject ? FontWeight.bold : FontWeight.normal,
+                itemBuilder:
+                    (context) =>
+                        availableProjects.map((project) {
+                          final isCurrentProject =
+                              project.id == currentProject?.id;
+                          return PopupMenuItem<String>(
+                            value: project.id!,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isCurrentProject
+                                      ? Icons.radio_button_checked
+                                      : Icons.radio_button_unchecked,
+                                  color:
+                                      isCurrentProject
+                                          ? Colors.green
+                                          : Colors.grey,
+                                  size: 18,
                                 ),
-                              ),
-                              Text(
-                                project.city,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        project.name,
+                                        style: TextStyle(
+                                          fontWeight:
+                                              isCurrentProject
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                        ),
+                                      ),
+                                      Text(
+                                        project.city,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                              ],
+                            ),
+                          );
+                        }).toList(),
               ),
             ),
-          
+
           if (isWeb)
             Padding(
               padding: EdgeInsets.only(right: 8),
@@ -223,7 +244,10 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                     children: [
                       Text(
                         currentUser?.name ?? 'Approver',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       if (currentProject != null)
                         Text(
@@ -286,14 +310,14 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                       children: [
                         // Current Project Card
                         _buildCurrentProjectCard(isWeb),
-                        
+
                         SizedBox(height: isWeb ? 24 : 20),
-                        
+
                         // Welcome Card - Hidden on web if shown in AppBar
                         if (!isWeb) _buildWelcomeCard(),
-                        
+
                         SizedBox(height: isWeb ? 30 : 24),
-                        
+
                         Text(
                           'Menu Approval',
                           style: TextStyle(
@@ -302,9 +326,9 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                             color: Colors.grey.shade800,
                           ),
                         ),
-                        
+
                         SizedBox(height: isWeb ? 24 : 16),
-                        
+
                         // Pending Approvals Summary
                         Container(
                           width: double.infinity,
@@ -312,9 +336,14 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                           margin: EdgeInsets.only(bottom: isWeb ? 24 : 20),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [Colors.orange.shade50, Colors.orange.shade100],
+                              colors: [
+                                Colors.orange.shade50,
+                                Colors.orange.shade100,
+                              ],
                             ),
-                            borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
+                            borderRadius: BorderRadius.circular(
+                              isWeb ? 16 : 12,
+                            ),
                             border: Border.all(color: Colors.orange.shade200),
                             boxShadow: [
                               BoxShadow(
@@ -363,8 +392,8 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                               ),
                               Container(
                                 padding: EdgeInsets.symmetric(
-                                  horizontal: isWeb ? 12 : 8, 
-                                  vertical: isWeb ? 8 : 4
+                                  horizontal: isWeb ? 12 : 8,
+                                  vertical: isWeb ? 8 : 4,
                                 ),
                                 decoration: BoxDecoration(
                                   color: Colors.orange.shade600,
@@ -382,15 +411,15 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                             ],
                           ),
                         ),
-                        
+
                         // Menu Grid
                         _buildMenuGrid(isWeb, baPending, evidencePending),
-                        
+
                         SizedBox(height: isWeb ? 32 : 24),
-                        
+
                         // Info Card
                         _buildInfoCard(isWeb),
-                        
+
                         if (isWeb) SizedBox(height: 24),
                       ],
                     ),
@@ -537,7 +566,8 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                 ),
               ],
             ),
-            if (currentProject!.dateRangeDisplay != 'Tanggal belum ditentukan') ...[
+            if (currentProject!.dateRangeDisplay !=
+                'Tanggal belum ditentukan') ...[
               SizedBox(height: 12),
               _buildProjectDetail(
                 Icons.calendar_today,
@@ -552,14 +582,15 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
     );
   }
 
-  Widget _buildProjectDetail(IconData icon, String label, String value, bool isWeb) {
+  Widget _buildProjectDetail(
+    IconData icon,
+    String label,
+    String value,
+    bool isWeb,
+  ) {
     return Row(
       children: [
-        Icon(
-          icon,
-          color: Colors.white70,
-          size: isWeb ? 16 : 14,
-        ),
+        Icon(icon, color: Colors.white70, size: isWeb ? 16 : 14),
         SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -650,9 +681,7 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
           SizedBox(height: 12),
           Text(
             currentUser?.email ?? '',
-            style: TextStyle(
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -660,8 +689,8 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
   }
 
   Widget _buildMenuGrid(bool isWeb, int baPending, int evidencePending) {
-    return isWeb 
-      ? Row(
+    return isWeb
+        ? Row(
           children: [
             Expanded(
               child: _buildMenuCard(
@@ -671,14 +700,20 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                 color: Colors.blue,
                 pendingCount: baPending,
                 isWeb: isWeb,
-                onTap: _currentProjectId != null ? () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ApprovalBAPage(),
-                    ),
-                  );
-                } : null,
+                onTap:
+                    currentProject != null
+                        ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => BASelectionPage(
+                                    role: 'approver',
+                                  ), // Pass role
+                            ),
+                          );
+                        }
+                        : null,
               ),
             ),
             SizedBox(width: 16),
@@ -690,38 +725,49 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                 color: Colors.green,
                 pendingCount: evidencePending,
                 isWeb: isWeb,
-                onTap: _currentProjectId != null ? () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ApprovalEvidencePage(),
-                    ),
-                  );
-                } : null,
+                onTap:
+                    _currentProjectId != null
+                        ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ApprovalEvidencePage(),
+                            ),
+                          );
+                        }
+                        : null,
               ),
             ),
           ],
         )
-      : Column(
+        : Column(
           children: [
             Row(
               children: [
                 Expanded(
-                  child: _buildMenuCard(
+                  child:
+                  // APPROVER DASHBOARD - Update navigasi Approval BA
+                  _buildMenuCard(
                     icon: Icons.assignment_turned_in,
                     title: 'Approval BA',
                     subtitle: 'Setujui berita acara',
                     color: Colors.blue,
                     pendingCount: baPending,
                     isWeb: isWeb,
-                    onTap: _currentProjectId != null ? () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ApprovalBAPage(),
-                        ),
-                      );
-                    } : null,
+                    onTap:
+                        currentProject != null
+                            ? () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => BASelectionPage(
+                                        role: 'approver',
+                                      ), // Pass role
+                                ),
+                              );
+                            }
+                            : null,
                   ),
                 ),
                 SizedBox(width: 16),
@@ -733,14 +779,17 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                     color: Colors.green,
                     pendingCount: evidencePending,
                     isWeb: isWeb,
-                    onTap: _currentProjectId != null ? () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ApprovalEvidencePage(),
-                        ),
-                      );
-                    } : null,
+                    onTap:
+                        _currentProjectId != null
+                            ? () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ApprovalEvidencePage(),
+                                ),
+                              );
+                            }
+                            : null,
                   ),
                 ),
               ],
@@ -759,7 +808,7 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
     VoidCallback? onTap,
   }) {
     final isDisabled = onTap == null;
-    
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -787,9 +836,10 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                   Container(
                     padding: EdgeInsets.all(isWeb ? 16 : 12),
                     decoration: BoxDecoration(
-                      color: isDisabled 
-                          ? Colors.grey.withOpacity(0.1) 
-                          : color.withOpacity(0.1),
+                      color:
+                          isDisabled
+                              ? Colors.grey.withOpacity(0.1)
+                              : color.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(isWeb ? 12 : 10),
                     ),
                     child: Icon(
@@ -801,8 +851,8 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                   if (pendingCount > 0 && !isDisabled)
                     Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: isWeb ? 8 : 6, 
-                        vertical: isWeb ? 4 : 2
+                        horizontal: isWeb ? 8 : 6,
+                        vertical: isWeb ? 4 : 2,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.red.shade500,
@@ -825,14 +875,16 @@ class _ApproverDashboardState extends State<ApproverDashboard> {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: isWeb ? 16 : 14,
-                  color: isDisabled ? Colors.grey.shade500 : Colors.grey.shade800,
+                  color:
+                      isDisabled ? Colors.grey.shade500 : Colors.grey.shade800,
                 ),
               ),
               SizedBox(height: 4),
               Text(
                 isDisabled ? 'Pilih proyek terlebih dahulu' : subtitle,
                 style: TextStyle(
-                  color: isDisabled ? Colors.grey.shade400 : Colors.grey.shade600,
+                  color:
+                      isDisabled ? Colors.grey.shade400 : Colors.grey.shade600,
                   fontSize: isWeb ? 13 : 11,
                 ),
                 maxLines: 2,

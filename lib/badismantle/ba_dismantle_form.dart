@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:management_event/session_manager.dart';
 
 class BADismantleFormPage extends StatefulWidget {
   final String? docId;
@@ -29,24 +30,66 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
   void initState() {
     super.initState();
     
-    // Initialize dengan data sample untuk testing
-    _tilokController.text = 'Jakarta Pusat';
-    _alamatController.text = 'Jl. Sudirman No. 123, Jakarta';
-    _pesertaController.text = '100';
-    _hariController.text = 'Senin';
-    _tanggalController.text = '15';
-    _bulanController.text = 'Januari';
-    _koordinatorController.text = 'Budi Santoso';
-    _pengawasController.text = 'Ahmad Rizki';
-    _nipPengawasController.text = '198501012010011001';
-    
+    // Initialize controllers untuk field b1-b39
     for (int i in [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,19,20,21,22,23,24,25,26,27,28,29,30,32,34,35,36,38,39]) {
       _bControllers['b$i'] = TextEditingController(text: '2');
     }
 
     if (widget.docId != null) {
       _loadData();
+    } else {
+      // Load sample data untuk form baru (testing)
+      _loadSampleData();
     }
+  }
+
+  void _loadSampleData() {
+    // Sample data untuk testing - langsung bisa klik simpan
+    _tilokController.text = 'Jakarta Convention Center';
+    _alamatController.text = 'Jl. Gatot Subroto Kav. 52-53, Jakarta Selatan';
+    _pesertaController.text = '150';
+    _hariController.text = 'Senin';
+    _tanggalController.text = '20';
+    _bulanController.text = 'Januari';
+    _koordinatorController.text = 'Budi Santoso';
+    _pengawasController.text = 'Dr. Ahmad Rizki, M.T.';
+    _nipPengawasController.text = '198501012010011001';
+    
+    // Sample jumlah peralatan
+    _bControllers['b1']?.text = '3';  // UPS Router
+    _bControllers['b2']?.text = '2';  // UPS Modem
+    _bControllers['b3']?.text = '2';  // Metal Detector
+    _bControllers['b4']?.text = '4';  // Laptop Registrasi
+    _bControllers['b5']?.text = '4';  // Webcam Registrasi
+    _bControllers['b6']?.text = '4';  // Barcode Scanner
+    _bControllers['b7']?.text = '4';  // LED Ring Light
+    _bControllers['b8']?.text = '2';  // Printer Registrasi
+    _bControllers['b9']?.text = '2';  // Laptop Monitoring
+    _bControllers['b10']?.text = '2'; // Webcam Monitoring
+    _bControllers['b11']?.text = '1'; // Printer Panitia
+    _bControllers['b12']?.text = '1'; // Laptop Admin
+    _bControllers['b13']?.text = '5'; // Container Box
+    _bControllers['b14']?.text = '1'; // LCD Projector
+    _bControllers['b15']?.text = '1'; // Laptop LCD Projector
+    _bControllers['b16']?.text = '4'; // CCTV
+    _bControllers['b19']?.text = '2'; // TV LCD
+    _bControllers['b20']?.text = '1'; // Hardisk 2TB
+    _bControllers['b21']?.text = '10'; // Meja Cover Ujian
+    _bControllers['b22']?.text = '20'; // Kursi Cover Ujian
+    _bControllers['b23']?.text = '2';  // Meja Penitipan Barang
+    _bControllers['b24']?.text = '4';  // Kursi Penitipan
+    _bControllers['b25']?.text = '2';  // Meja Transit
+    _bControllers['b26']?.text = '4';  // Kursi Transit
+    _bControllers['b27']?.text = '150'; // Kursi Peserta
+    _bControllers['b28']?.text = '4';  // Meja Registrasi
+    _bControllers['b29']?.text = '8';  // Kursi Registrasi
+    _bControllers['b30']?.text = '200'; // Tenda Semi Dekor (m²)
+    _bControllers['b32']?.text = '100'; // Tenda Sarnafil (m²)
+    _bControllers['b34']?.text = '10'; // Pembatas Antrian
+    _bControllers['b35']?.text = '2';  // Sound Portable
+    _bControllers['b36']?.text = '6';  // AC Standing
+    _bControllers['b38']?.text = '4';  // Misty Fan
+    _bControllers['b39']?.text = '50'; // Genset (KVA)
   }
 
   Future<void> _loadData() async {
@@ -95,6 +138,33 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  // Info Banner - Sample Data
+                  if (widget.docId == null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.blue[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Form sudah terisi dengan data contoh. Langsung klik Simpan untuk testing.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue[700],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                   _buildSectionCard(
                     icon: Icons.info_outline,
                     title: 'Informasi Umum',
@@ -343,6 +413,17 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
   Future<void> _saveData() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final currentProjectId = SessionManager.currentProjectId;
+    if (currentProjectId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: Tidak ada proyek aktif'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -350,6 +431,7 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
       int cadangan = (peserta * 0.05).ceil();
 
       Map<String, dynamic> data = {
+        'projectId': currentProjectId,
         'tilok': _tilokController.text,
         'alamat': _alamatController.text,
         'peserta': peserta,
@@ -360,7 +442,8 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
         'koordinator': _koordinatorController.text,
         'pengawas': _pengawasController.text,
         'nipPengawas': _nipPengawasController.text,
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'status': 'draft',
+        'createdAt': FieldValue.serverTimestamp(),
       };
 
       _bControllers.forEach((key, controller) {
@@ -370,6 +453,8 @@ class _BADismantleFormPageState extends State<BADismantleFormPage> {
       if (widget.docId == null) {
         await FirebaseFirestore.instance.collection('ba_dismantle').add(data);
       } else {
+        data.remove('createdAt');
+        data['updatedAt'] = FieldValue.serverTimestamp();
         await FirebaseFirestore.instance
             .collection('ba_dismantle')
             .doc(widget.docId)

@@ -31,13 +31,13 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
     try {
       // Load current user
       currentUser = await UserService.getCurrentUser();
-      
+
       // Load current project
       final currentProjectId = await SessionManager.getCurrentProject();
       if (currentProjectId != null) {
         currentProject = await ProjectService.getProjectById(currentProjectId);
       }
-      
+
       // Load available projects untuk user ini (untuk project switcher)
       if (currentUser != null) {
         if (currentUser!.isAdmin) {
@@ -46,9 +46,12 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
         } else {
           // User biasa hanya yang di-assign
           final allProjects = await ProjectService.getProjects().first;
-          availableProjects = allProjects
-              .where((project) => currentUser!.projectIds.contains(project.id))
-              .toList();
+          availableProjects =
+              allProjects
+                  .where(
+                    (project) => currentUser!.projectIds.contains(project.id),
+                  )
+                  .toList();
         }
       }
     } catch (e) {
@@ -61,22 +64,22 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
     try {
       await SessionManager.clearSession();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error signing out')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error signing out')));
     }
   }
 
   Future<void> _switchProject(String newProjectId) async {
     if (newProjectId == currentProject?.id) return;
-    
+
     try {
       await SessionManager.setCurrentProject(newProjectId);
-      
+
       // Reload dashboard data dengan proyek baru
       setState(() => _isLoading = true);
       await _loadDashboardData();
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Berhasil beralih ke proyek ${currentProject?.name}'),
@@ -96,9 +99,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final screenWidth = MediaQuery.of(context).size.width;
@@ -125,46 +126,58 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
                 icon: Icon(Icons.folder_special),
                 tooltip: 'Ganti Proyek',
                 onSelected: _switchProject,
-                itemBuilder: (context) => availableProjects.map((project) {
-                  final isCurrentProject = project.id == currentProject?.id;
-                  return PopupMenuItem<String>(
-                    value: project.id!,
-                    child: Row(
-                      children: [
-                        Icon(
-                          isCurrentProject ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                          color: isCurrentProject ? Colors.blue : Colors.grey,
-                          size: 18,
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                project.name,
-                                style: TextStyle(
-                                  fontWeight: isCurrentProject ? FontWeight.bold : FontWeight.normal,
+                itemBuilder:
+                    (context) =>
+                        availableProjects.map((project) {
+                          final isCurrentProject =
+                              project.id == currentProject?.id;
+                          return PopupMenuItem<String>(
+                            value: project.id!,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isCurrentProject
+                                      ? Icons.radio_button_checked
+                                      : Icons.radio_button_unchecked,
+                                  color:
+                                      isCurrentProject
+                                          ? Colors.blue
+                                          : Colors.grey,
+                                  size: 18,
                                 ),
-                              ),
-                              Text(
-                                project.city,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        project.name,
+                                        style: TextStyle(
+                                          fontWeight:
+                                              isCurrentProject
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                        ),
+                                      ),
+                                      Text(
+                                        project.city,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                              ],
+                            ),
+                          );
+                        }).toList(),
               ),
             ),
-          
+
           if (isWeb)
             Padding(
               padding: EdgeInsets.only(right: 8),
@@ -177,7 +190,10 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
                     children: [
                       Text(
                         currentUser?.name ?? 'Koordinator',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       if (currentProject != null)
                         Text(
@@ -240,14 +256,14 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
                       children: [
                         // Current Project Card
                         _buildCurrentProjectCard(isWeb),
-                        
+
                         SizedBox(height: isWeb ? 24 : 20),
-                        
+
                         // Welcome Card - Hidden on web if shown in AppBar
                         if (!isWeb) _buildWelcomeCard(isWeb),
-                        
+
                         SizedBox(height: isWeb ? 32 : 24),
-                        
+
                         // Section Title
                         Text(
                           'Menu Koordinator',
@@ -257,17 +273,17 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
                             color: Colors.grey.shade800,
                           ),
                         ),
-                        
+
                         SizedBox(height: isWeb ? 24 : 16),
-                        
+
                         // Menu Grid
                         _buildMenuGrid(isWeb, isTablet, screenWidth),
-                        
+
                         SizedBox(height: isWeb ? 32 : 24),
-                        
+
                         // Info Card
                         _buildInfoCard(isWeb),
-                        
+
                         if (isWeb) SizedBox(height: 24),
                       ],
                     ),
@@ -414,7 +430,8 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
                 ),
               ],
             ),
-            if (currentProject!.dateRangeDisplay != 'Tanggal belum ditentukan') ...[
+            if (currentProject!.dateRangeDisplay !=
+                'Tanggal belum ditentukan') ...[
               SizedBox(height: 12),
               _buildProjectDetail(
                 Icons.calendar_today,
@@ -429,14 +446,15 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
     );
   }
 
-  Widget _buildProjectDetail(IconData icon, String label, String value, bool isWeb) {
+  Widget _buildProjectDetail(
+    IconData icon,
+    String label,
+    String value,
+    bool isWeb,
+  ) {
     return Row(
       children: [
-        Icon(
-          icon,
-          color: Colors.white70,
-          size: isWeb ? 16 : 14,
-        ),
+        Icon(icon, color: Colors.white70, size: isWeb ? 16 : 14),
         SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -541,7 +559,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
   Widget _buildMenuGrid(bool isWeb, bool isTablet, double screenWidth) {
     int crossAxisCount;
     double childAspectRatio;
-    
+
     if (isWeb) {
       crossAxisCount = 4;
       childAspectRatio = 1.1;
@@ -567,14 +585,20 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
           subtitle: 'Kelola berita acara kegiatan',
           color: Colors.blue,
           isWeb: isWeb,
-          onTap: currentProject != null ? () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => BASelectionPage(),
-              ),
-            );
-          } : null,
+          onTap:
+              currentProject != null
+                  ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => BASelectionPage(
+                              role: 'coordinator',
+                            ), // Pass role
+                      ),
+                    );
+                  }
+                  : null,
         ),
         _buildMenuCard(
           icon: Icons.photo_library,
@@ -582,14 +606,15 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
           subtitle: 'Upload bukti kegiatan',
           color: Colors.green,
           isWeb: isWeb,
-          onTap: currentProject != null ? () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => EvidencePage(),
-              ),
-            );
-          } : null,
+          onTap:
+              currentProject != null
+                  ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => EvidencePage()),
+                    );
+                  }
+                  : null,
         ),
         _buildMenuCard(
           icon: Icons.receipt_long,
@@ -597,14 +622,15 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
           subtitle: 'Kelola nota pembayaran',
           color: Colors.orange,
           isWeb: isWeb,
-          onTap: currentProject != null ? () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => NotaPage(),
-              ),
-            );
-          } : null,
+          onTap:
+              currentProject != null
+                  ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => NotaPage()),
+                    );
+                  }
+                  : null,
         ),
         _buildMenuCard(
           icon: Icons.how_to_reg,
@@ -612,14 +638,15 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
           subtitle: 'Kelola absensi peserta',
           color: Colors.purple,
           isWeb: isWeb,
-          onTap: currentProject != null ? () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AbsensiPage(),
-              ),
-            );
-          } : null,
+          onTap:
+              currentProject != null
+                  ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => AbsensiPage()),
+                    );
+                  }
+                  : null,
         ),
       ],
     );
@@ -634,7 +661,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
     VoidCallback? onTap,
   }) {
     final isDisabled = onTap == null;
-    
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -661,9 +688,10 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
                 Container(
                   padding: EdgeInsets.all(isWeb ? 20 : 16),
                   decoration: BoxDecoration(
-                    color: isDisabled 
-                        ? Colors.grey.withOpacity(0.1) 
-                        : color.withOpacity(0.1),
+                    color:
+                        isDisabled
+                            ? Colors.grey.withOpacity(0.1)
+                            : color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
                   ),
                   child: Icon(
@@ -678,7 +706,10 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: isWeb ? 16 : 14,
-                    color: isDisabled ? Colors.grey.shade500 : Colors.grey.shade800,
+                    color:
+                        isDisabled
+                            ? Colors.grey.shade500
+                            : Colors.grey.shade800,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -686,7 +717,10 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
                 Text(
                   isDisabled ? 'Pilih proyek terlebih dahulu' : subtitle,
                   style: TextStyle(
-                    color: isDisabled ? Colors.grey.shade400 : Colors.grey.shade600,
+                    color:
+                        isDisabled
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600,
                     fontSize: isWeb ? 14 : 11,
                   ),
                   textAlign: TextAlign.center,
