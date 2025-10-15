@@ -432,8 +432,11 @@ class _BAPerubahanVolumeLuarKontrakFormPageState extends State<BAPerubahanVolume
       };
 
       if (widget.docId == null) {
+        // Tambahkan status 'draft' untuk BA baru
+        data['status'] = 'draft';
         await FirebaseFirestore.instance.collection('ba_perubahan_volume_luar_kontrak').add(data);
       } else {
+        // Saat edit, jangan ubah status yang sudah ada
         await FirebaseFirestore.instance
             .collection('ba_perubahan_volume_luar_kontrak')
             .doc(widget.docId)

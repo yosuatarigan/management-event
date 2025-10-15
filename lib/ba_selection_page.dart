@@ -13,10 +13,12 @@ class BASelectionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     // Warna berbeda untuk coordinator dan approver
     final primaryColor = role == 'coordinator' ? Colors.blue : Colors.green;
-    final title = role == 'coordinator' ? 'Berita Acara' : 'Approval Berita Acara';
-    final subtitle = role == 'coordinator' 
-        ? 'Pilih template BA yang ingin dibuat'
-        : 'Pilih template BA yang ingin di-approve';
+    final title =
+        role == 'coordinator' ? 'Berita Acara' : 'Approval Berita Acara';
+    final subtitle =
+        role == 'coordinator'
+            ? 'Pilih template BA yang ingin dibuat'
+            : 'Pilih template BA yang ingin di-approve';
 
     return Scaffold(
       body: Container(
@@ -41,7 +43,7 @@ class BASelectionPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Icon(
-                        role == 'coordinator' 
+                        role == 'coordinator'
                             ? Icons.description_rounded
                             : Icons.assignment_turned_in_rounded,
                         size: 60,
@@ -84,15 +86,17 @@ class BASelectionPage extends StatelessWidget {
                         context,
                         icon: Icons.build_circle_outlined,
                         title: 'BA Dismantle',
-                        subtitle: role == 'coordinator'
-                            ? 'Pembongkaran sarana prasarana'
-                            : 'Approve pembongkaran sarana prasarana',
+                        subtitle:
+                            role == 'coordinator'
+                                ? 'Pembongkaran sarana prasarana'
+                                : 'Approve pembongkaran sarana prasarana',
                         color: Colors.blue,
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => BADismantleListPage(role: role),
+                              builder:
+                                  (context) => BADismantleListPage(role: role),
                             ),
                           );
                         },
@@ -101,9 +105,10 @@ class BASelectionPage extends StatelessWidget {
                         context,
                         icon: Icons.calendar_today_rounded,
                         title: 'BA Harian',
-                        subtitle: role == 'coordinator'
-                            ? 'Berita acara harian'
-                            : 'Approve berita acara harian',
+                        subtitle:
+                            role == 'coordinator'
+                                ? 'Berita acara harian'
+                                : 'Approve berita acara harian',
                         color: Colors.green,
                         onTap: () {
                           Navigator.push(
@@ -118,15 +123,18 @@ class BASelectionPage extends StatelessWidget {
                         context,
                         icon: Icons.swap_horiz_rounded,
                         title: 'BA Perubahan Volume',
-                        subtitle: role == 'coordinator'
-                            ? 'Perubahan volume pekerjaan'
-                            : 'Approve perubahan volume pekerjaan',
+                        subtitle:
+                            role == 'coordinator'
+                                ? 'Perubahan volume pekerjaan'
+                                : 'Approve perubahan volume pekerjaan',
                         color: Colors.orange,
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => BAPerubahanVolumeListPage(role: role),
+                              builder:
+                                  (context) =>
+                                      BAPerubahanVolumeListPage(role: role),
                             ),
                           );
                         },
@@ -135,15 +143,20 @@ class BASelectionPage extends StatelessWidget {
                         context,
                         icon: Icons.add_box_outlined,
                         title: 'BA Penambahan Volume di Luar Kontrak',
-                        subtitle: role == 'coordinator'
-                            ? 'Penambahan volume di luar kontrak'
-                            : 'Approve penambahan volume di luar kontrak',
+                        subtitle:
+                            role == 'coordinator'
+                                ? 'Penambahan volume di luar kontrak'
+                                : 'Approve penambahan volume di luar kontrak',
                         color: Colors.purple,
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const BAPerubahanVolumeLuarKontrakListPage(),
+                              builder:
+                                  (context) =>
+                                      BAPerubahanVolumeLuarKontrakListPage(
+                                        role: role,
+                                      ),
                             ),
                           );
                         },
@@ -152,9 +165,10 @@ class BASelectionPage extends StatelessWidget {
                         context,
                         icon: Icons.verified_outlined,
                         title: 'BA Uji Fungsi',
-                        subtitle: role == 'coordinator'
-                            ? 'Pengujian fungsi peralatan'
-                            : 'Approve pengujian fungsi peralatan',
+                        subtitle:
+                            role == 'coordinator'
+                                ? 'Pengujian fungsi peralatan'
+                                : 'Approve pengujian fungsi peralatan',
                         color: Colors.teal,
                         onTap: () {},
                       ),

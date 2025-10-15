@@ -7,11 +7,31 @@ import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
+import 'package:signature/signature.dart';
+import 'dart:convert';
 
-class BAPerubahanVolumeLuarKontrakViewPage extends StatelessWidget {
+class BAPerubahanVolumeLuarKontrakViewPage extends StatefulWidget {
   final String docId;
+  final String role;
 
-  const BAPerubahanVolumeLuarKontrakViewPage({Key? key, required this.docId}) : super(key: key);
+  const BAPerubahanVolumeLuarKontrakViewPage({
+    Key? key,
+    required this.docId,
+    required this.role,
+  }) : super(key: key);
+
+  @override
+  State<BAPerubahanVolumeLuarKontrakViewPage> createState() => _BAPerubahanVolumeLuarKontrakViewPageState();
+}
+
+class _BAPerubahanVolumeLuarKontrakViewPageState extends State<BAPerubahanVolumeLuarKontrakViewPage> {
+  SignatureController? _signatureController;
+
+  @override
+  void dispose() {
+    _signatureController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,11 +48,11 @@ class BAPerubahanVolumeLuarKontrakViewPage extends StatelessWidget {
           ),
         ],
       ),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
             .collection('ba_perubahan_volume_luar_kontrak')
-            .doc(docId)
-            .get(),
+            .doc(widget.docId)
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
@@ -47,6 +67,7 @@ class BAPerubahanVolumeLuarKontrakViewPage extends StatelessWidget {
           }
 
           var data = snapshot.data!.data() as Map<String, dynamic>;
+          String status = data['status'] ?? 'draft';
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -62,12 +83,304 @@ class BAPerubahanVolumeLuarKontrakViewPage extends StatelessWidget {
                 const SizedBox(height: 24),
                 _buildFooter(),
                 const SizedBox(height: 24),
-                _buildSignature(data),
+                _buildSignatureSection(data, status),
+                const SizedBox(height: 24),
+                _buildActionButton(status),
               ],
             ),
           );
         },
       ),
+    );
+  }
+
+  Widget _buildActionButton(String status) {
+    if (widget.role == 'coordinator' && status == 'draft') {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () => _showSignatureDialog('coordinator'),
+          icon: const Icon(Icons.draw, color: Colors.white),
+          label: const Text('Tanda Tangan Koordinator', style: TextStyle(color: Colors.white)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.purple[700],
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      );
+    } else if (widget.role == 'approver' && status == 'pending') {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () => _showSignatureDialog('approver'),
+          icon: const Icon(Icons.check_circle, color: Colors.white),
+          label: const Text('Approve BA', style: TextStyle(color: Colors.white)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green[700],
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  void _showSignatureDialog(String signerRole) async {
+    // Ambil data BA untuk mendapatkan nama penandatangan
+    var doc = await FirebaseFirestore.instance
+        .collection('ba_perubahan_volume_luar_kontrak')
+        .doc(widget.docId)
+        .get();
+    
+    if (!doc.exists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data BA tidak ditemukan')),
+      );
+      return;
+    }
+    
+    var data = doc.data()!;
+    String signerName = signerRole == 'coordinator' 
+        ? data['namaPihakPertama'] 
+        : data['namaPihakKedua'];
+
+    _signatureController = SignatureController(
+      penStrokeWidth: 3,
+      penColor: Colors.black,
+      exportBackgroundColor: Colors.white,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                signerRole == 'coordinator' ? 'Tanda Tangan Koordinator' : 'Tanda Tangan Approver',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                signerName,
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                height: 200,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.purple, width: 2),
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Signature(
+                    controller: _signatureController!,
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        _signatureController!.clear();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Clear'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        _signatureController?.dispose();
+                        Navigator.pop(context);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Batal'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (_signatureController!.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Silakan tanda tangan terlebih dahulu')),
+                          );
+                          return;
+                        }
+                        await _saveSignature(signerRole, signerName);
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple[700],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Simpan'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveSignature(String signerRole, String signerName) async {
+    try {
+      final signatureData = await _signatureController!.toPngBytes();
+      final signatureBase64 = base64Encode(signatureData!);
+
+      Map<String, dynamic> updateData = {};
+
+      if (signerRole == 'coordinator') {
+        updateData = {
+          'coordinatorSignature': signatureBase64,
+          'coordinatorSignedAt': FieldValue.serverTimestamp(),
+          'coordinatorName': signerName,
+          'status': 'pending',
+        };
+      } else {
+        updateData = {
+          'approverSignature': signatureBase64,
+          'approverSignedAt': FieldValue.serverTimestamp(),
+          'approverName': signerName,
+          'status': 'approved',
+        };
+      }
+
+      await FirebaseFirestore.instance
+          .collection('ba_perubahan_volume_luar_kontrak')
+          .doc(widget.docId)
+          .update(updateData);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(signerRole == 'coordinator' ? 'Tanda tangan berhasil disimpan' : 'BA berhasil di-approve'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Widget _buildSignatureSection(Map<String, dynamic> data, String status) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            children: [
+              const Text('PIHAK PERTAMA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              if (data['coordinatorSignature'] != null) ...[
+                Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Image.memory(
+                    base64Decode(data['coordinatorSignature']),
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  data['coordinatorName'] ?? '',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center,
+                ),
+              ] else
+                Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Belum ditandatangani',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Text(data['namaPihakPertama'], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+              Text('NIP. ${data['nipPihakPertama']}', style: const TextStyle(fontSize: 11)),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            children: [
+              const Text('PIHAK KEDUA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              if (data['approverSignature'] != null) ...[
+                Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Image.memory(
+                    base64Decode(data['approverSignature']),
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  data['approverName'] ?? '',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center,
+                ),
+              ] else
+                Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text(
+                      status == 'draft' ? 'Menunggu koordinator' : 'Menunggu approval',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Text(data['namaPihakKedua'], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+              Text(data['jabatanPihakKedua'], style: const TextStyle(fontSize: 11)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -81,7 +394,7 @@ class BAPerubahanVolumeLuarKontrakViewPage extends StatelessWidget {
 
       var doc = await FirebaseFirestore.instance
           .collection('ba_perubahan_volume_luar_kontrak')
-          .doc(docId)
+          .doc(widget.docId)
           .get();
 
       if (!doc.exists) {
@@ -99,6 +412,16 @@ class BAPerubahanVolumeLuarKontrakViewPage extends StatelessWidget {
       final imageData2 = await rootBundle.load('assets/baharian2.png');
       final image1 = pw.MemoryImage(imageData1.buffer.asUint8List());
       final image2 = pw.MemoryImage(imageData2.buffer.asUint8List());
+
+      pw.MemoryImage? coordinatorSig;
+      pw.MemoryImage? approverSig;
+
+      if (data['coordinatorSignature'] != null) {
+        coordinatorSig = pw.MemoryImage(base64Decode(data['coordinatorSignature']));
+      }
+      if (data['approverSignature'] != null) {
+        approverSig = pw.MemoryImage(base64Decode(data['approverSignature']));
+      }
 
       pdf.addPage(
         pw.MultiPage(
@@ -184,7 +507,8 @@ class BAPerubahanVolumeLuarKontrakViewPage extends StatelessWidget {
                   child: pw.Column(
                     children: [
                       pw.Text('PIHAK PERTAMA', style: const pw.TextStyle(fontSize: 11)),
-                      pw.SizedBox(height: 60),
+                      pw.SizedBox(height: 10),
+                      if (coordinatorSig != null) pw.Image(coordinatorSig, height: 60) else pw.SizedBox(height: 60),
                       pw.Text(data['namaPihakPertama'], style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
                       pw.Text('NIP. ${data['nipPihakPertama']}', style: const pw.TextStyle(fontSize: 11)),
                     ],
@@ -194,7 +518,8 @@ class BAPerubahanVolumeLuarKontrakViewPage extends StatelessWidget {
                   child: pw.Column(
                     children: [
                       pw.Text('PIHAK KEDUA', style: const pw.TextStyle(fontSize: 11)),
-                      pw.SizedBox(height: 60),
+                      pw.SizedBox(height: 10),
+                      if (approverSig != null) pw.Image(approverSig, height: 60) else pw.SizedBox(height: 60),
                       pw.Text(data['namaPihakKedua'], style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
                       pw.Text(data['jabatanPihakKedua'], style: const pw.TextStyle(fontSize: 11)),
                     ],
@@ -565,33 +890,6 @@ class BAPerubahanVolumeLuarKontrakViewPage extends StatelessWidget {
         textAlign: TextAlign.justify,
         style: TextStyle(fontSize: 12),
       ),
-    );
-  }
-
-  Widget _buildSignature(Map<String, dynamic> data) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            children: [
-              const Text('PIHAK PERTAMA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 60),
-              Text(data['namaPihakPertama'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              Text('NIP. ${data['nipPihakPertama']}', style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-        ),
-        Expanded(
-          child: Column(
-            children: [
-              const Text('PIHAK KEDUA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 60),
-              Text(data['namaPihakKedua'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              Text(data['jabatanPihakKedua'], style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

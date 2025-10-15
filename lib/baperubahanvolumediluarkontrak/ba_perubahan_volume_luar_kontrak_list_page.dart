@@ -4,14 +4,19 @@ import 'package:management_event/baperubahanvolumediluarkontrak/ba_perubahan_vol
 import 'package:management_event/baperubahanvolumediluarkontrak/ba_perubahan_volume_luar_kontrak_view_page.dart';
 
 class BAPerubahanVolumeLuarKontrakListPage extends StatelessWidget {
-  const BAPerubahanVolumeLuarKontrakListPage({Key? key}) : super(key: key);
+  final String role; // 'coordinator' atau 'approver'
+
+  const BAPerubahanVolumeLuarKontrakListPage({
+    Key? key,
+    required this.role,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('BA Penambahan Volume'),
+        title: Text(role == 'coordinator' ? 'BA Penambahan Volume' : 'Approval BA Penambahan'),
         backgroundColor: Colors.purple[700],
         foregroundColor: Colors.white,
         elevation: 0,
@@ -52,7 +57,7 @@ class BAPerubahanVolumeLuarKontrakListPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Tap tombol + untuk membuat BA baru',
+                    role == 'coordinator' ? 'Tap tombol + untuk membuat BA baru' : 'Belum ada BA untuk di-approve',
                     style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                   ),
                 ],
@@ -66,6 +71,7 @@ class BAPerubahanVolumeLuarKontrakListPage extends StatelessWidget {
             itemBuilder: (context, index) {
               var doc = snapshot.data!.docs[index];
               var data = doc.data() as Map<String, dynamic>;
+              String status = data['status'] ?? 'draft';
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -87,7 +93,10 @@ class BAPerubahanVolumeLuarKontrakListPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BAPerubahanVolumeLuarKontrakViewPage(docId: doc.id),
+                          builder: (context) => BAPerubahanVolumeLuarKontrakViewPage(
+                            docId: doc.id,
+                            role: role,
+                          ),
                         ),
                       );
                     },
@@ -122,12 +131,19 @@ class BAPerubahanVolumeLuarKontrakListPage extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  data['tilok'] ?? 'No Title',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        data['tilok'] ?? 'No Title',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                    _buildStatusBadge(status),
+                                  ],
                                 ),
                                 const SizedBox(height: 6),
                                 Row(
@@ -168,71 +184,77 @@ class BAPerubahanVolumeLuarKontrakListPage extends StatelessWidget {
                               ],
                             ),
                           ),
-                          PopupMenuButton<String>(
-                            icon: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[100],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.more_vert, size: 20),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            itemBuilder: (context) => [
-                              PopupMenuItem<String>(
-                                value: 'view',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.visibility, size: 20, color: Colors.purple[700]),
-                                    const SizedBox(width: 12),
-                                    const Text('Lihat'),
-                                  ],
+                          if (role == 'coordinator')
+                            PopupMenuButton<String>(
+                              icon: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
+                                child: const Icon(Icons.more_vert, size: 20),
                               ),
-                              PopupMenuItem<String>(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit, size: 20, color: Colors.orange[700]),
-                                    const SizedBox(width: 12),
-                                    const Text('Edit'),
-                                  ],
-                                ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              const PopupMenuDivider(),
-                              const PopupMenuItem<String>(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.delete, size: 20, color: Colors.red),
-                                    SizedBox(width: 12),
-                                    Text('Hapus', style: TextStyle(color: Colors.red)),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            onSelected: (value) {
-                              if (value == 'view') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => BAPerubahanVolumeLuarKontrakViewPage(docId: doc.id),
+                              itemBuilder: (context) => [
+                                PopupMenuItem<String>(
+                                  value: 'view',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.visibility, size: 20, color: Colors.purple[700]),
+                                      const SizedBox(width: 12),
+                                      const Text('Lihat'),
+                                    ],
                                   ),
-                                );
-                              } else if (value == 'edit') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => BAPerubahanVolumeLuarKontrakFormPage(docId: doc.id),
+                                ),
+                                if (status == 'draft')
+                                  PopupMenuItem<String>(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit, size: 20, color: Colors.orange[700]),
+                                        const SizedBox(width: 12),
+                                        const Text('Edit'),
+                                      ],
+                                    ),
                                   ),
-                                );
-                              } else if (value == 'delete') {
-                                _showDeleteDialog(context, doc.id);
-                              }
-                            },
-                          ),
+                                if (status == 'draft') const PopupMenuDivider(),
+                                if (status == 'draft')
+                                  const PopupMenuItem<String>(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete, size: 20, color: Colors.red),
+                                        SizedBox(width: 12),
+                                        Text('Hapus', style: TextStyle(color: Colors.red)),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                              onSelected: (value) {
+                                if (value == 'view') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => BAPerubahanVolumeLuarKontrakViewPage(
+                                        docId: doc.id,
+                                        role: role,
+                                      ),
+                                    ),
+                                  );
+                                } else if (value == 'edit') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => BAPerubahanVolumeLuarKontrakFormPage(docId: doc.id),
+                                    ),
+                                  );
+                                } else if (value == 'delete') {
+                                  _showDeleteDialog(context, doc.id);
+                                }
+                              },
+                            ),
                         ],
                       ),
                     ),
@@ -243,16 +265,65 @@ class BAPerubahanVolumeLuarKontrakListPage extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const BAPerubahanVolumeLuarKontrakFormPage()),
-          );
-        },
-        backgroundColor: Colors.purple[700],
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Buat BA', style: TextStyle(color: Colors.white)),
+      floatingActionButton: role == 'coordinator'
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const BAPerubahanVolumeLuarKontrakFormPage()),
+                );
+              },
+              backgroundColor: Colors.purple[700],
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text('Buat BA', style: TextStyle(color: Colors.white)),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildStatusBadge(String status) {
+    Color color;
+    String text;
+    IconData icon;
+
+    switch (status) {
+      case 'pending':
+        color = Colors.orange;
+        text = 'Pending';
+        icon = Icons.schedule;
+        break;
+      case 'approved':
+        color = Colors.green;
+        text = 'Approved';
+        icon = Icons.check_circle;
+        break;
+      default:
+        color = Colors.grey;
+        text = 'Draft';
+        icon = Icons.edit;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
