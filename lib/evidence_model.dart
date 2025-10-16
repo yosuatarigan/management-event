@@ -19,8 +19,10 @@ class EvidenceModel {
   final String uploaderName;
   final String lokasiId;
   final String lokasiName;
-  final String projectId; // Tambahan field untuk proyek
+  final String projectId;
   final KategoriEvidence kategori;
+  final String? jenis;
+  final String? subJenis;
   final String fileUrl;
   final String? description;
   final StatusEvidence status;
@@ -35,8 +37,10 @@ class EvidenceModel {
     required this.uploaderName,
     required this.lokasiId,
     required this.lokasiName,
-    required this.projectId, // Required field
+    required this.projectId,
     required this.kategori,
+    this.jenis,
+    this.subJenis,
     required this.fileUrl,
     required this.createdAt,
     this.description,
@@ -53,11 +57,13 @@ class EvidenceModel {
       uploaderName: map['uploader_name'] ?? '',
       lokasiId: map['lokasi_id'] ?? '',
       lokasiName: map['lokasi_name'] ?? '',
-      projectId: map['project_id'] ?? '', // Handle legacy data
+      projectId: map['project_id'] ?? '',
       kategori: KategoriEvidence.values.firstWhere(
         (e) => e.toString().split('.').last == map['kategori'],
         orElse: () => KategoriEvidence.lainnya,
       ),
+      jenis: map['jenis'],
+      subJenis: map['sub_jenis'],
       fileUrl: map['file_url'] ?? '',
       description: map['description'],
       status: StatusEvidence.values.firstWhere(
@@ -77,8 +83,10 @@ class EvidenceModel {
       'uploader_name': uploaderName,
       'lokasi_id': lokasiId,
       'lokasi_name': lokasiName,
-      'project_id': projectId, // Include projectId
+      'project_id': projectId,
       'kategori': kategori.toString().split('.').last,
+      'jenis': jenis,
+      'sub_jenis': subJenis,
       'file_url': fileUrl,
       'description': description,
       'status': status.toString().split('.').last,
@@ -154,6 +162,12 @@ class EvidenceModel {
     return '${createdAt.day}/${createdAt.month}/${createdAt.year} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}';
   }
 
+  String get jenisSubJenisDisplay {
+    if (jenis == null) return '';
+    if (subJenis == null) return jenis!;
+    return '$jenis - $subJenis';
+  }
+
   bool get isImage => kategori == KategoriEvidence.foto;
   bool get isVideo => kategori == KategoriEvidence.video;
   bool get isDocument => kategori == KategoriEvidence.dokumen;
@@ -166,6 +180,8 @@ class EvidenceModel {
     String? lokasiName,
     String? projectId,
     KategoriEvidence? kategori,
+    String? jenis,
+    String? subJenis,
     String? fileUrl,
     String? description,
     StatusEvidence? status,
@@ -182,6 +198,8 @@ class EvidenceModel {
       lokasiName: lokasiName ?? this.lokasiName,
       projectId: projectId ?? this.projectId,
       kategori: kategori ?? this.kategori,
+      jenis: jenis ?? this.jenis,
+      subJenis: subJenis ?? this.subJenis,
       fileUrl: fileUrl ?? this.fileUrl,
       description: description ?? this.description,
       status: status ?? this.status,

@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:management_event/user_model.dart';
 import 'evidence_service.dart';
 import 'evidence_model.dart';
+import 'evidence_categories.dart';
 import 'location_service.dart';
 import 'location_model.dart';
 import 'user_service.dart';
@@ -24,6 +25,8 @@ class _EvidencePageState extends State<EvidencePage> {
   final _searchController = TextEditingController();
   StatusEvidence? _selectedStatusFilter;
   KategoriEvidence? _selectedKategoriFilter;
+  String? _selectedJenisFilter;
+  String? _selectedSubJenisFilter;
   String _searchQuery = '';
   String? _currentProjectId;
   bool _isLoadingProject = true;
@@ -147,12 +150,14 @@ class _EvidencePageState extends State<EvidencePage> {
 
                     // Filters
                     isWeb 
-                      ? Row(
+                      ? Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
                           children: [
                             _buildStatusFilter(isWeb),
-                            SizedBox(width: 16),
                             _buildKategoriFilter(isWeb),
-                            Spacer(),
+                            _buildJenisFilter(isWeb),
+                            _buildSubJenisFilter(isWeb),
                           ],
                         )
                       : SingleChildScrollView(
@@ -162,6 +167,10 @@ class _EvidencePageState extends State<EvidencePage> {
                               _buildStatusFilter(isWeb),
                               SizedBox(width: 8),
                               _buildKategoriFilter(isWeb),
+                              SizedBox(width: 8),
+                              _buildJenisFilter(isWeb),
+                              SizedBox(width: 8),
+                              _buildSubJenisFilter(isWeb),
                             ],
                           ),
                         ),
@@ -364,7 +373,148 @@ class _EvidencePageState extends State<EvidencePage> {
         ),
       ],
       onSelected: (value) {
-        setState(() => _selectedKategoriFilter = value);
+        setState(() {
+          _selectedKategoriFilter = value;
+          _selectedJenisFilter = null;
+          _selectedSubJenisFilter = null;
+        });
+      },
+    );
+  }
+
+  Widget _buildJenisFilter(bool isWeb) {
+    if (_selectedKategoriFilter == null) return SizedBox.shrink();
+    
+    final kategoriKey = _selectedKategoriFilter.toString().split('.').last;
+    if (!EvidenceCategories.hasJenisSubJenis(kategoriKey)) {
+      return SizedBox.shrink();
+    }
+
+    final jenisList = EvidenceCategories.getJenisByKategori(kategoriKey);
+    if (jenisList.isEmpty) return SizedBox.shrink();
+
+    return PopupMenuButton<String?>(
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: isWeb ? 16 : 12,
+          vertical: isWeb ? 12 : 8,
+        ),
+        decoration: BoxDecoration(
+          color: _selectedJenisFilter != null
+              ? Colors.teal.shade100
+              : Colors.white,
+          borderRadius: BorderRadius.circular(isWeb ? 24 : 20),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.list_alt,
+              size: isWeb ? 18 : 16,
+              color: _selectedJenisFilter != null
+                  ? Colors.teal.shade600
+                  : Colors.grey.shade600,
+            ),
+            SizedBox(width: 6),
+            Text(
+              _selectedJenisFilter ?? 'Jenis',
+              style: TextStyle(
+                color: _selectedJenisFilter != null
+                    ? Colors.teal.shade600
+                    : Colors.grey.shade600,
+                fontSize: isWeb ? 14 : 12,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+            Icon(Icons.arrow_drop_down, size: isWeb ? 20 : 16),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => [
+        PopupMenuItem(value: null, child: Text('Semua Jenis')),
+        ...jenisList.map(
+          (jenis) => PopupMenuItem(
+            value: jenis,
+            child: Text(jenis),
+          ),
+        ),
+      ],
+      onSelected: (value) {
+        setState(() {
+          _selectedJenisFilter = value;
+          _selectedSubJenisFilter = null;
+        });
+      },
+    );
+  }
+
+  Widget _buildSubJenisFilter(bool isWeb) {
+    if (_selectedKategoriFilter == null || _selectedJenisFilter == null) {
+      return SizedBox.shrink();
+    }
+
+    final kategoriKey = _selectedKategoriFilter.toString().split('.').last;
+    final subJenisList = EvidenceCategories.getSubJenisByJenis(
+      kategoriKey, 
+      _selectedJenisFilter!,
+    );
+    
+    if (subJenisList.isEmpty) return SizedBox.shrink();
+
+    return PopupMenuButton<String?>(
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: isWeb ? 16 : 12,
+          vertical: isWeb ? 12 : 8,
+        ),
+        decoration: BoxDecoration(
+          color: _selectedSubJenisFilter != null
+              ? Colors.indigo.shade100
+              : Colors.white,
+          borderRadius: BorderRadius.circular(isWeb ? 24 : 20),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.subdirectory_arrow_right,
+              size: isWeb ? 18 : 16,
+              color: _selectedSubJenisFilter != null
+                  ? Colors.indigo.shade600
+                  : Colors.grey.shade600,
+            ),
+            SizedBox(width: 6),
+            Text(
+              _selectedSubJenisFilter ?? 'Sub Jenis',
+              style: TextStyle(
+                color: _selectedSubJenisFilter != null
+                    ? Colors.indigo.shade600
+                    : Colors.grey.shade600,
+                fontSize: isWeb ? 14 : 12,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+            Icon(Icons.arrow_drop_down, size: isWeb ? 20 : 16),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => [
+        PopupMenuItem(value: null, child: Text('Semua Sub Jenis')),
+        ...subJenisList.map(
+          (subJenis) => PopupMenuItem(
+            value: subJenis,
+            child: Text(subJenis),
+          ),
+        ),
+      ],
+      onSelected: (value) {
+        setState(() => _selectedSubJenisFilter = value);
       },
     );
   }
@@ -498,6 +648,21 @@ class _EvidencePageState extends State<EvidencePage> {
                           ),
                         ],
                       ),
+                      
+                      // Jenis & Sub Jenis
+                      if (evidence.jenis != null) ...[
+                        SizedBox(height: 4),
+                        Text(
+                          evidence.jenisSubJenisDisplay,
+                          style: TextStyle(
+                            fontSize: isWeb ? 11 : 10,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                       SizedBox(height: isWeb ? 8 : 6),
 
                       // Location
@@ -631,14 +796,21 @@ class _EvidencePageState extends State<EvidencePage> {
       final matchesSearch =
           evidence.lokasiName.toLowerCase().contains(_searchQuery) ||
           (evidence.description?.toLowerCase().contains(_searchQuery) ?? false) ||
+          (evidence.jenis?.toLowerCase().contains(_searchQuery) ?? false) ||
+          (evidence.subJenis?.toLowerCase().contains(_searchQuery) ?? false) ||
           evidence.kategoriDisplayName.toLowerCase().contains(_searchQuery);
 
       final matchesStatus = _selectedStatusFilter == null ||
           evidence.status == _selectedStatusFilter;
       final matchesKategori = _selectedKategoriFilter == null ||
           evidence.kategori == _selectedKategoriFilter;
+      final matchesJenis = _selectedJenisFilter == null ||
+          evidence.jenis == _selectedJenisFilter;
+      final matchesSubJenis = _selectedSubJenisFilter == null ||
+          evidence.subJenis == _selectedSubJenisFilter;
 
-      return matchesSearch && matchesStatus && matchesKategori;
+      return matchesSearch && matchesStatus && matchesKategori && 
+             matchesJenis && matchesSubJenis;
     }).toList();
   }
 
@@ -671,7 +843,7 @@ class _EvidencePageState extends State<EvidencePage> {
   }
 }
 
-// Enhanced Upload Dialog with better file support
+// Upload Dialog dengan Jenis & Sub Jenis
 class EvidenceUploadDialog extends StatefulWidget {
   final String projectId;
   final VoidCallback onUploaded;
@@ -693,6 +865,8 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
   String _selectedLokasiId = '';
   String _selectedLokasiName = '';
   KategoriEvidence _selectedKategori = KategoriEvidence.foto;
+  String? _selectedJenis;
+  String? _selectedSubJenis;
   
   File? _selectedFile;
   Uint8List? _webFile;
@@ -711,13 +885,9 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
   Future<void> _loadUserDataAndSetLocation() async {
     final user = await UserService.getCurrentUser();
 
-    if (user != null && user.role == UserRole.koordinator && user.locationId != null && user.locationId!.isNotEmpty) {
-      // Untuk koordinator, cari lokasi di current project yang match dengan user.locationId
+    if (user != null && user.locationId != null && user.locationId!.isNotEmpty) {
       try {
-        final currentProjectLocations = await LocationService.getLocationsByProject(widget.projectId).first;
-        
-        // Cari lokasi yang match dengan user.locationId DI PROJECT YANG SEDANG AKTIF
-        final userLocation = currentProjectLocations.where((loc) => loc.id == user.locationId).firstOrNull;
+        final userLocation = await LocationService.getLocationById(user.locationId!);
         
         if (userLocation != null) {
           setState(() {
@@ -725,19 +895,10 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
             _selectedLokasiName = '${userLocation.name} - ${userLocation.city}';
           });
         } else {
-          // Jika lokasi koordinator tidak ada di project ini, biarkan koordinator pilih manual
-          print('Koordinator location not found in current project, allowing manual selection');
-          setState(() {
-            _selectedLokasiName = '';
-            _selectedLokasiId = '';
-          });
+          print('User location not found: ${user.locationId}');
         }
       } catch (e) {
-        print('Error finding coordinator location in current project: $e');
-        setState(() {
-          _selectedLokasiName = '';
-          _selectedLokasiId = '';
-        });
+        print('Error loading user location: $e');
       }
     }
 
@@ -805,6 +966,24 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
       }
     } else {
       final pickedFile = await picker.pickVideo(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        setState(() {
+          _selectedFile = File(pickedFile.path);
+          _webFile = null;
+          _fileName = pickedFile.name;
+        });
+      }
+    }
+  }
+
+  Future<void> _captureVideo() async {
+    final ImagePicker picker = ImagePicker();
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Kamera tidak tersedia di web')),
+      );
+    } else {
+      final pickedFile = await picker.pickVideo(source: ImageSource.camera);
       if (pickedFile != null) {
         setState(() {
           _selectedFile = File(pickedFile.path);
@@ -919,13 +1098,13 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      // Lokasi
+                      // Lokasi (Otomatis dari user)
                       _isLoadingUser
                           ? Padding(
                               padding: const EdgeInsets.symmetric(vertical: 24.0),
                               child: Center(child: CircularProgressIndicator()),
                             )
-                          : (_currentUser?.role == UserRole.koordinator && _selectedLokasiId.isNotEmpty)
+                          : _selectedLokasiId.isNotEmpty
                               ? TextFormField(
                                   initialValue: _selectedLokasiName,
                                   readOnly: true,
@@ -934,79 +1113,30 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    prefixIcon: Icon(Icons.location_on_outlined),
+                                    prefixIcon: Icon(Icons.location_on),
                                     filled: true,
                                     fillColor: Colors.grey[200],
                                   ),
                                 )
-                              : StreamBuilder<List<LocationModel>>(
-                                  stream: LocationService.getLocationsByProject(widget.projectId),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return Center(
-                                        child: CircularProgressIndicator(),
-                                      );
-                                    }
-                                    final locations = snapshot.data ?? [];
-                                    
-                                    if (locations.isEmpty) {
-                                      return Container(
-                                        padding: EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.orange.shade50,
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.orange.shade200),
+                              : Container(
+                                  padding: EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.red.shade200),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.error_outline, color: Colors.red.shade600),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Akun Anda belum memiliki lokasi. Hubungi admin untuk assignment lokasi.',
+                                          style: TextStyle(color: Colors.red.shade600),
                                         ),
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.warning_amber, color: Colors.orange.shade600),
-                                            SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                'Belum ada lokasi di proyek ini. Silakan tambah lokasi terlebih dahulu.',
-                                                style: TextStyle(color: Colors.orange.shade600),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    }
-                                    
-                                    return DropdownButtonFormField<String>(
-                                      value: _selectedLokasiId.isEmpty
-                                          ? null
-                                          : _selectedLokasiId,
-                                      decoration: InputDecoration(
-                                        labelText: 'Lokasi *',
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        prefixIcon: Icon(Icons.location_on_outlined),
                                       ),
-                                      items: locations.map((location) {
-                                        return DropdownMenuItem(
-                                          value: location.id,
-                                          child: Text(
-                                            '${location.name} - ${location.city}',
-                                          ),
-                                        );
-                                      }).toList(),
-                                      onChanged: (value) {
-                                        if (value != null) {
-                                          final selectedLocation = locations
-                                              .firstWhere((loc) => loc.id == value);
-                                          setState(() {
-                                            _selectedLokasiId = value;
-                                            _selectedLokasiName = selectedLocation.name;
-                                          });
-                                        }
-                                      },
-                                      validator: (value) => value?.isEmpty ?? true
-                                          ? 'Lokasi wajib dipilih'
-                                          : null,
-                                    );
-                                  },
+                                    ],
+                                  ),
                                 ),
                       SizedBox(height: isWeb ? 20 : 16),
 
@@ -1014,7 +1144,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                       DropdownButtonFormField<KategoriEvidence>(
                         value: _selectedKategori,
                         decoration: InputDecoration(
-                          labelText: 'Kategori Evidence *',
+                          labelText: 'Kategori *',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -1035,7 +1165,8 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                         onChanged: (value) {
                           setState(() {
                             _selectedKategori = value!;
-                            // Clear selected file when changing category
+                            _selectedJenis = null;
+                            _selectedSubJenis = null;
                             _selectedFile = null;
                             _webFile = null;
                             _fileName = null;
@@ -1043,6 +1174,70 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                         },
                       ),
                       SizedBox(height: isWeb ? 20 : 16),
+
+                      // Jenis (hanya untuk Foto & Video)
+                      if (EvidenceCategories.hasJenisSubJenis(
+                        _selectedKategori.toString().split('.').last,
+                      )) ...[
+                        DropdownButtonFormField<String>(
+                          value: _selectedJenis,
+                          decoration: InputDecoration(
+                            labelText: 'Jenis *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            prefixIcon: Icon(Icons.list_alt),
+                          ),
+                          items: EvidenceCategories.getJenisByKategori(
+                            _selectedKategori.toString().split('.').last,
+                          ).map((jenis) {
+                            return DropdownMenuItem(
+                              value: jenis,
+                              child: Text(jenis),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedJenis = value;
+                              _selectedSubJenis = null;
+                            });
+                          },
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'Jenis wajib dipilih'
+                              : null,
+                        ),
+                        SizedBox(height: isWeb ? 20 : 16),
+                      ],
+
+                      // Sub Jenis (cascade dari Jenis)
+                      if (_selectedJenis != null) ...[
+                        DropdownButtonFormField<String>(
+                          value: _selectedSubJenis,
+                          decoration: InputDecoration(
+                            labelText: 'Sub Jenis *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            prefixIcon: Icon(Icons.subdirectory_arrow_right),
+                          ),
+                          items: EvidenceCategories.getSubJenisByJenis(
+                            _selectedKategori.toString().split('.').last,
+                            _selectedJenis!,
+                          ).map((subJenis) {
+                            return DropdownMenuItem(
+                              value: subJenis,
+                              child: Text(subJenis),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() => _selectedSubJenis = value);
+                          },
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'Sub Jenis wajib dipilih'
+                              : null,
+                        ),
+                        SizedBox(height: isWeb ? 20 : 16),
+                      ],
 
                       // File Upload Section
                       _buildFileUploadSection(isWeb),
@@ -1056,7 +1251,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          hintText: 'Tambahkan deskripsi untuk evidence ini...',
+                          hintText: 'Tambahkan deskripsi...',
                           prefixIcon: Icon(Icons.description),
                         ),
                         maxLines: 3,
@@ -1084,7 +1279,9 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                   SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isUploading || (_selectedFile == null && _webFile == null) 
+                      onPressed: _isUploading || 
+                                 (_selectedFile == null && _webFile == null) ||
+                                 _selectedLokasiId.isEmpty
                           ? null 
                           : _uploadEvidence,
                       child: _isUploading
@@ -1130,7 +1327,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
             ),
             SizedBox(height: 12),
             Text(
-              'Pilih ${_getKategoriDisplayName(_selectedKategori)} untuk diupload',
+              'Pilih ${_getKategoriDisplayName(_selectedKategori)}',
               style: TextStyle(
                 color: Colors.grey.shade600,
                 fontWeight: FontWeight.w500,
@@ -1140,7 +1337,6 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
             SizedBox(height: isWeb ? 20 : 16),
             _buildUploadButtons(isWeb),
           ] else ...[
-            // File Preview
             Container(
               height: isWeb ? 150 : 120,
               width: double.infinity,
@@ -1228,14 +1424,31 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
         );
       
       case KategoriEvidence.video:
-        return ElevatedButton.icon(
-          onPressed: _pickVideo,
-          icon: Icon(Icons.videocam, size: 20),
-          label: Text('Pilih Video'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-          ),
+        return Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children: [
+            if (!kIsWeb)
+              ElevatedButton.icon(
+                onPressed: _captureVideo,
+                icon: Icon(Icons.videocam, size: 20),
+                label: Text('Rekam Video'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ElevatedButton.icon(
+              onPressed: _pickVideo,
+              icon: Icon(Icons.video_library, size: 20),
+              label: Text(kIsWeb ? 'Pilih Video' : 'Galeri'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
         );
       
       case KategoriEvidence.dokumen:
@@ -1359,6 +1572,13 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
       return;
     }
 
+    if (_selectedLokasiId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Akun Anda belum memiliki lokasi. Hubungi admin.')),
+      );
+      return;
+    }
+
     setState(() => _isUploading = true);
 
     try {
@@ -1379,6 +1599,8 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
         lokasiId: _selectedLokasiId,
         lokasiName: _selectedLokasiName,
         kategori: _selectedKategori,
+        jenis: _selectedJenis,
+        subJenis: _selectedSubJenis,
         fileUrl: fileUrl,
         description: _descriptionController.text.trim().isEmpty
             ? null
@@ -1404,7 +1626,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
   }
 }
 
-// Enhanced Detail Dialog with download support
+// Detail Dialog dengan Jenis & Sub Jenis
 class EvidenceDetailDialog extends StatelessWidget {
   final EvidenceModel evidence;
 
@@ -1483,7 +1705,7 @@ class EvidenceDetailDialog extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // File Preview/Action
+                    // File Preview
                     Container(
                       width: double.infinity,
                       height: isWeb ? 250 : 200,
@@ -1498,7 +1720,7 @@ class EvidenceDetailDialog extends StatelessWidget {
                     ),
                     SizedBox(height: 20),
 
-                    // Action buttons for different file types
+                    // Action buttons
                     Row(
                       children: [
                         Expanded(
@@ -1533,14 +1755,20 @@ class EvidenceDetailDialog extends StatelessWidget {
                     _buildInfoRow('Uploader', evidence.uploaderName, Icons.person),
                     _buildInfoRow('Tanggal', evidence.formattedDate, Icons.calendar_today),
                     _buildInfoRow('Kategori', evidence.kategoriDisplayName, Icons.category),
+                    
+                    // Jenis & Sub Jenis
+                    if (evidence.jenis != null) ...[
+                      _buildInfoRow('Jenis', evidence.jenis!, Icons.list_alt),
+                    ],
+                    if (evidence.subJenis != null) ...[
+                      _buildInfoRow('Sub Jenis', evidence.subJenis!, Icons.subdirectory_arrow_right),
+                    ],
 
                     // Description
-                    if (evidence.description != null &&
-                        evidence.description!.isNotEmpty) ...[
+                    if (evidence.description != null && evidence.description!.isNotEmpty) ...[
                       SizedBox(height: 20),
                       Text('Deskripsi:',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       SizedBox(height: 8),
                       Container(
                         padding: EdgeInsets.all(16),
