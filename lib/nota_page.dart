@@ -7,9 +7,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'nota_service.dart';
 import 'nota_model.dart';
+import 'nota_categories.dart';
 import 'location_service.dart';
 import 'location_model.dart';
 import 'user_service.dart';
+import 'user_model.dart';
 import 'session_manager.dart';
 
 class NotaPage extends StatefulWidget {
@@ -20,10 +22,10 @@ class NotaPage extends StatefulWidget {
 class _NotaPageState extends State<NotaPage> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  String? _selectedJenisFilter;
 
   @override
   Widget build(BuildContext context) {
-    // Check if current project is available
     final currentProjectId = SessionManager.currentProjectId;
     
     if (currentProjectId == null) {
@@ -59,7 +61,6 @@ class _NotaPageState extends State<NotaPage> {
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 768;
-    final isTablet = screenWidth > 600 && screenWidth <= 768;
 
     return Scaffold(
       appBar: AppBar(
@@ -97,32 +98,40 @@ class _NotaPageState extends State<NotaPage> {
       ),
       body: Column(
         children: [
-          // Search Section
+          // Search & Filter Section
           Container(
             color: Theme.of(context).primaryColor.withOpacity(0.1),
             padding: EdgeInsets.all(isWeb ? 24 : 16),
             child: Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: isWeb ? 1200 : double.infinity),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Cari nota...',
-                    prefixIcon: Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
-                      borderSide: BorderSide.none,
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Cari nota...',
+                        prefixIcon: Icon(Icons.search),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: isWeb ? 16 : 12,
+                          vertical: isWeb ? 16 : 12,
+                        ),
+                      ),
+                      onChanged: (value) {
+                        setState(() => _searchQuery = value.toLowerCase());
+                      },
                     ),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: isWeb ? 16 : 12,
-                      vertical: isWeb ? 16 : 12,
-                    ),
-                  ),
-                  onChanged: (value) {
-                    setState(() => _searchQuery = value.toLowerCase());
-                  },
+                    SizedBox(height: isWeb ? 16 : 12),
+
+                    // Jenis Filter
+                    _buildJenisFilter(isWeb),
+                  ],
                 ),
               ),
             ),
@@ -135,7 +144,7 @@ class _NotaPageState extends State<NotaPage> {
                 constraints: BoxConstraints(maxWidth: isWeb ? 1200 : double.infinity),
                 child: Column(
                   children: [
-                    // Total Amount Summary - Updated to use project-aware data
+                    // Total Amount Summary
                     StreamBuilder<List<NotaModel>>(
                       stream: NotaService.getCurrentUserNotaByProject(currentProjectId),
                       builder: (context, snapshot) {
@@ -268,7 +277,7 @@ class _NotaPageState extends State<NotaPage> {
                       },
                     ),
                     
-                    // Nota List - Updated to use project-aware data
+                    // Nota List
                     Expanded(
                       child: StreamBuilder<List<NotaModel>>(
                         stream: NotaService.getCurrentUserNotaByProject(currentProjectId),
@@ -301,9 +310,62 @@ class _NotaPageState extends State<NotaPage> {
     );
   }
 
+  Widget _buildJenisFilter(bool isWeb) {
+    return PopupMenuButton<String?>(
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: isWeb ? 16 : 12,
+          vertical: isWeb ? 12 : 8,
+        ),
+        decoration: BoxDecoration(
+          color: _selectedJenisFilter != null
+              ? Colors.orange.shade100
+              : Colors.white,
+          borderRadius: BorderRadius.circular(isWeb ? 24 : 20),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.category,
+              size: isWeb ? 18 : 16,
+              color: _selectedJenisFilter != null
+                  ? Colors.orange.shade600
+                  : Colors.grey.shade600,
+            ),
+            SizedBox(width: 6),
+            Text(
+              _selectedJenisFilter ?? 'Semua Jenis',
+              style: TextStyle(
+                color: _selectedJenisFilter != null
+                    ? Colors.orange.shade600
+                    : Colors.grey.shade600,
+                fontSize: isWeb ? 14 : 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Icon(Icons.arrow_drop_down, size: isWeb ? 20 : 16),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => [
+        PopupMenuItem(value: null, child: Text('Semua Jenis')),
+        ...NotaCategories.jenisNota.map(
+          (jenis) => PopupMenuItem(
+            value: jenis,
+            child: Text(jenis),
+          ),
+        ),
+      ],
+      onSelected: (value) {
+        setState(() => _selectedJenisFilter = value);
+      },
+    );
+  }
+
   Widget _buildNotaList(List<NotaModel> notaList, bool isWeb) {
     if (isWeb) {
-      // Grid layout for web
       return GridView.builder(
         padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -318,7 +380,6 @@ class _NotaPageState extends State<NotaPage> {
         },
       );
     } else {
-      // List layout for mobile/tablet
       return ListView.builder(
         padding: EdgeInsets.all(16),
         itemCount: notaList.length,
@@ -376,6 +437,8 @@ class _NotaPageState extends State<NotaPage> {
   }
 
   Widget _buildNotaCard(NotaModel nota, bool isWeb) {
+    final jenisStyle = NotaCategories.getJenisStyle(nota.jenis);
+    
     return Card(
       margin: isWeb ? EdgeInsets.zero : EdgeInsets.only(bottom: 12),
       elevation: isWeb ? 4 : 2,
@@ -390,17 +453,17 @@ class _NotaPageState extends State<NotaPage> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Receipt Icon
+              // Icon
               Container(
                 width: isWeb ? 60 : 50,
                 height: isWeb ? 60 : 50,
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: jenisStyle['color'].withOpacity(0.1),
                   borderRadius: BorderRadius.circular(isWeb ? 12 : 8),
                 ),
                 child: Icon(
-                  Icons.receipt,
-                  color: Colors.orange,
+                  jenisStyle['icon'],
+                  color: jenisStyle['color'],
                   size: isWeb ? 28 : 24,
                 ),
               ),
@@ -411,7 +474,28 @@ class _NotaPageState extends State<NotaPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header Row
+                    // Jenis Badge
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isWeb ? 10 : 8,
+                        vertical: isWeb ? 5 : 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: jenisStyle['color'].withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        nota.jenis,
+                        style: TextStyle(
+                          color: jenisStyle['color'],
+                          fontSize: isWeb ? 11 : 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isWeb ? 10 : 8),
+                    
+                    // Amount & Date
                     Row(
                       children: [
                         Expanded(
@@ -433,7 +517,7 @@ class _NotaPageState extends State<NotaPage> {
                         ),
                       ],
                     ),
-                    SizedBox(height: isWeb ? 10 : 8),
+                    SizedBox(height: isWeb ? 8 : 6),
                     
                     // Purpose
                     Text(
@@ -445,7 +529,7 @@ class _NotaPageState extends State<NotaPage> {
                       maxLines: isWeb ? 1 : 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    SizedBox(height: isWeb ? 8 : 6),
+                    SizedBox(height: isWeb ? 6 : 4),
                     
                     // Location
                     Row(
@@ -482,9 +566,13 @@ class _NotaPageState extends State<NotaPage> {
     return notaList.where((nota) {
       final matchesSearch = nota.keperluan.toLowerCase().contains(_searchQuery) ||
           nota.lokasiName.toLowerCase().contains(_searchQuery) ||
+          nota.jenis.toLowerCase().contains(_searchQuery) ||
           nota.formattedNominal.toLowerCase().contains(_searchQuery);
       
-      return matchesSearch;
+      final matchesJenis = _selectedJenisFilter == null ||
+          nota.jenis == _selectedJenisFilter;
+      
+      return matchesSearch && matchesJenis;
     }).toList();
   }
 
@@ -517,7 +605,7 @@ class _NotaPageState extends State<NotaPage> {
   }
 }
 
-// Updated Add Nota Dialog with projectId
+// Add Nota Dialog dengan Jenis & Lokasi Otomatis
 class AddNotaDialog extends StatefulWidget {
   final String projectId;
   final VoidCallback onAdded;
@@ -540,10 +628,44 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
   
   String _selectedLokasiId = '';
   String _selectedLokasiName = '';
+  String _selectedJenis = 'Lain-lain';
   DateTime _selectedDate = DateTime.now();
   File? _selectedPhoto;
   Uint8List? _webImage;
   bool _isUploading = false;
+
+  UserModel? _currentUser;
+  bool _isLoadingUser = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserDataAndSetLocation();
+  }
+
+  Future<void> _loadUserDataAndSetLocation() async {
+    final user = await UserService.getCurrentUser();
+
+    if (user != null && user.locationId != null && user.locationId!.isNotEmpty) {
+      try {
+        final userLocation = await LocationService.getLocationById(user.locationId!);
+        
+        if (userLocation != null) {
+          setState(() {
+            _selectedLokasiId = userLocation.id;
+            _selectedLokasiName = '${userLocation.name} - ${userLocation.city}';
+          });
+        }
+      } catch (e) {
+        print('Error loading user location: $e');
+      }
+    }
+
+    setState(() {
+      _currentUser = user;
+      _isLoadingUser = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -602,6 +724,77 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                   key: _formKey,
                   child: Column(
                     children: [
+                      // Lokasi (Otomatis)
+                      _isLoadingUser
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24.0),
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          : _selectedLokasiId.isNotEmpty
+                              ? TextFormField(
+                                  initialValue: _selectedLokasiName,
+                                  readOnly: true,
+                                  decoration: InputDecoration(
+                                    labelText: 'Lokasi (Otomatis)',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    prefixIcon: Icon(Icons.location_on),
+                                    filled: true,
+                                    fillColor: Colors.grey[200],
+                                  ),
+                                )
+                              : Container(
+                                  padding: EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.red.shade200),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.error_outline, color: Colors.red.shade600),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Akun Anda belum memiliki lokasi. Hubungi admin.',
+                                          style: TextStyle(color: Colors.red.shade600),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                      SizedBox(height: isWeb ? 20 : 16),
+
+                      // Jenis
+                      DropdownButtonFormField<String>(
+                        value: _selectedJenis,
+                        decoration: InputDecoration(
+                          labelText: 'Jenis Nota *',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: Icon(Icons.category),
+                        ),
+                        items: NotaCategories.jenisNota.map((jenis) {
+                          final style = NotaCategories.getJenisStyle(jenis);
+                          return DropdownMenuItem(
+                            value: jenis,
+                            child: Row(
+                              children: [
+                                Icon(style['icon'], size: 20, color: style['color']),
+                                SizedBox(width: 8),
+                                Text(jenis),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() => _selectedJenis = value!);
+                        },
+                      ),
+                      SizedBox(height: isWeb ? 20 : 16),
+                      
                       // Tanggal
                       InkWell(
                         onTap: () => _selectDate(),
@@ -621,45 +814,6 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                       ),
                       SizedBox(height: isWeb ? 20 : 16),
                       
-                      // Lokasi - Updated to filter by project
-                      StreamBuilder<List<LocationModel>>(
-                        stream: LocationService.getLocationsByProject(widget.projectId),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return Center(child: CircularProgressIndicator());
-                          }
-                          
-                          final locations = snapshot.data ?? [];
-                          
-                          return DropdownButtonFormField<String>(
-                            value: _selectedLokasiId.isEmpty ? null : _selectedLokasiId,
-                            decoration: InputDecoration(
-                              labelText: 'Lokasi *',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            items: locations.map((location) {
-                              return DropdownMenuItem(
-                                value: location.id,
-                                child: Text('${location.name} - ${location.city}'),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                final selectedLocation = locations.firstWhere((loc) => loc.id == value);
-                                setState(() {
-                                  _selectedLokasiId = value;
-                                  _selectedLokasiName = selectedLocation.name;
-                                });
-                              }
-                            },
-                            validator: (value) => value?.isEmpty ?? true ? 'Lokasi wajib dipilih' : null,
-                          );
-                        },
-                      ),
-                      SizedBox(height: isWeb ? 20 : 16),
-                      
                       // Nominal
                       TextFormField(
                         controller: _nominalController,
@@ -669,6 +823,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           prefixText: 'Rp ',
+                          prefixIcon: Icon(Icons.attach_money),
                         ),
                         keyboardType: TextInputType.number,
                         validator: (value) {
@@ -688,13 +843,14 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           hintText: 'Jelaskan keperluan pengeluaran...',
+                          prefixIcon: Icon(Icons.description),
                         ),
                         maxLines: 3,
                         validator: (value) => value?.isEmpty ?? true ? 'Keperluan wajib diisi' : null,
                       ),
                       SizedBox(height: isWeb ? 20 : 16),
                       
-                      // Photo Upload Section
+                      // Photo Upload
                       Container(
                         width: double.infinity,
                         padding: EdgeInsets.all(isWeb ? 20 : 16),
@@ -813,7 +969,9 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                   SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isUploading || (_selectedPhoto == null && _webImage == null) 
+                      onPressed: _isUploading || 
+                                 (_selectedPhoto == null && _webImage == null) ||
+                                 _selectedLokasiId.isEmpty
                           ? null 
                           : _submitNota,
                       child: _isUploading
@@ -856,8 +1014,6 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final ImagePicker picker = ImagePicker();
-    
     if (kIsWeb && source == ImageSource.camera) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Kamera tidak tersedia di web')),
@@ -866,7 +1022,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
     }
     
     if (kIsWeb) {
-      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
       if (pickedFile != null) {
         final webImage = await pickedFile.readAsBytes();
         setState(() {
@@ -875,7 +1031,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
         });
       }
     } else {
-      final pickedFile = await picker.pickImage(
+      final pickedFile = await _picker.pickImage(
         source: source,
         maxWidth: 1920,
         maxHeight: 1080,
@@ -913,6 +1069,13 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
       return;
     }
 
+    if (_selectedLokasiId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Akun Anda belum memiliki lokasi. Hubungi admin.')),
+      );
+      return;
+    }
+
     setState(() => _isUploading = true);
 
     try {
@@ -925,14 +1088,14 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
 
       final photoUrl = await uploadImage(_selectedPhoto, _webImage);
 
-      // Updated nota model with projectId
       final nota = NotaModel(
         notaId: '',
         koordinatorId: currentUser.uid,
         koordinatorName: currentUserData.name,
         lokasiId: _selectedLokasiId,
         lokasiName: _selectedLokasiName,
-        projectId: widget.projectId, // Add projectId
+        projectId: widget.projectId,
+        jenis: _selectedJenis,
         tanggal: _selectedDate,
         nominal: double.parse(_nominalController.text),
         keperluan: _keperluanController.text.trim(),
@@ -959,7 +1122,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
   }
 }
 
-// Simple Detail Dialog
+// Detail Dialog
 class NotaDetailDialog extends StatelessWidget {
   final NotaModel nota;
 
@@ -969,6 +1132,7 @@ class NotaDetailDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 768;
+    final jenisStyle = NotaCategories.getJenisStyle(nota.jenis);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isWeb ? 20 : 16)),
@@ -983,22 +1147,41 @@ class NotaDetailDialog extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(isWeb ? 24 : 20),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: jenisStyle['color'].withOpacity(0.1),
                 borderRadius: BorderRadius.vertical(
                   top: Radius.circular(isWeb ? 20 : 16),
                 ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.receipt_long, color: Colors.orange),
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: jenisStyle['color'],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(jenisStyle['icon'], color: Colors.white),
+                  ),
                   SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      'Detail Nota Pengeluaran',
-                      style: TextStyle(
-                        fontSize: isWeb ? 20 : 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Detail Nota',
+                          style: TextStyle(
+                            fontSize: isWeb ? 20 : 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          nota.jenis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: jenisStyle['color'],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   IconButton(
@@ -1036,7 +1219,7 @@ class NotaDetailDialog extends StatelessWidget {
                     ),
                     SizedBox(height: 20),
                     
-                    // Amount (prominent)
+                    // Amount
                     Container(
                       width: double.infinity,
                       padding: EdgeInsets.all(isWeb ? 20 : 16),
@@ -1069,17 +1252,11 @@ class NotaDetailDialog extends StatelessWidget {
                     SizedBox(height: 20),
                     
                     // Info
-                    Text('Tanggal: ${nota.formattedTanggal}',
-                        style: TextStyle(fontSize: 16)),
-                    SizedBox(height: 8),
-                    Text('Lokasi: ${nota.lokasiName}',
-                        style: TextStyle(fontSize: 16)),
-                    SizedBox(height: 8),
-                    Text('Keperluan: ${nota.keperluan}',
-                        style: TextStyle(fontSize: 16)),
-                    SizedBox(height: 8),
-                    Text('Dibuat: ${nota.formattedDate}',
-                        style: TextStyle(fontSize: 16)),
+                    _buildInfoRow('Jenis', nota.jenis, jenisStyle['icon'], jenisStyle['color']),
+                    _buildInfoRow('Tanggal', nota.formattedTanggal, Icons.calendar_today, Colors.grey.shade600),
+                    _buildInfoRow('Lokasi', nota.lokasiName, Icons.location_on, Colors.grey.shade600),
+                    _buildInfoRow('Keperluan', nota.keperluan, Icons.description, Colors.grey.shade600),
+                    _buildInfoRow('Dibuat', nota.formattedDate, Icons.access_time, Colors.grey.shade600),
                   ],
                 ),
               ),
@@ -1093,11 +1270,34 @@ class NotaDetailDialog extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text('Tutup'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(0, isWeb ? 50 : 45),
+                  ),
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, IconData icon, Color color) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: color),
+          SizedBox(width: 12),
+          Text(
+            '$label: ',
+            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+          ),
+          Expanded(
+            child: Text(value, style: TextStyle(fontSize: 16)),
+          ),
+        ],
       ),
     );
   }

@@ -887,7 +887,8 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
 
     if (user != null && user.locationId != null && user.locationId!.isNotEmpty) {
       try {
-        final userLocation = await LocationService.getLocationById(user.locationId!);
+        final currentProjectLocations = await LocationService.getLocationsByProject(widget.projectId).first;
+        final userLocation = currentProjectLocations.where((loc) => loc.id == user.locationId).firstOrNull;
         
         if (userLocation != null) {
           setState(() {
@@ -895,10 +896,10 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
             _selectedLokasiName = '${userLocation.name} - ${userLocation.city}';
           });
         } else {
-          print('User location not found: ${user.locationId}');
+          print('User location not found in current project');
         }
       } catch (e) {
-        print('Error loading user location: $e');
+        print('Error finding user location: $e');
       }
     }
 
@@ -1098,13 +1099,13 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      // Lokasi (Otomatis dari user)
+                      // Lokasi
                       _isLoadingUser
                           ? Padding(
                               padding: const EdgeInsets.symmetric(vertical: 24.0),
                               child: Center(child: CircularProgressIndicator()),
                             )
-                          : _selectedLokasiId.isNotEmpty
+                          : (_currentUser?.role == UserRole.koordinator && _selectedLokasiId.isNotEmpty)
                               ? TextFormField(
                                   initialValue: _selectedLokasiName,
                                   readOnly: true,
@@ -1113,30 +1114,72 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    prefixIcon: Icon(Icons.location_on),
+                                    prefixIcon: Icon(Icons.location_on_outlined),
                                     filled: true,
                                     fillColor: Colors.grey[200],
                                   ),
                                 )
-                              : Container(
-                                  padding: EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.red.shade200),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.error_outline, color: Colors.red.shade600),
-                                      SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          'Akun Anda belum memiliki lokasi. Hubungi admin untuk assignment lokasi.',
-                                          style: TextStyle(color: Colors.red.shade600),
+                              : StreamBuilder<List<LocationModel>>(
+                                  stream: LocationService.getLocationsByProject(widget.projectId),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState == ConnectionState.waiting) {
+                                      return Center(child: CircularProgressIndicator());
+                                    }
+                                    final locations = snapshot.data ?? [];
+                                    
+                                    if (locations.isEmpty) {
+                                      return Container(
+                                        padding: EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange.shade50,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Colors.orange.shade200),
                                         ),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.warning_amber, color: Colors.orange.shade600),
+                                            SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                'Belum ada lokasi di proyek ini.',
+                                                style: TextStyle(color: Colors.orange.shade600),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                    
+                                    return DropdownButtonFormField<String>(
+                                      value: _selectedLokasiId.isEmpty ? null : _selectedLokasiId,
+                                      decoration: InputDecoration(
+                                        labelText: 'Lokasi *',
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        prefixIcon: Icon(Icons.location_on_outlined),
                                       ),
-                                    ],
-                                  ),
+                                      items: locations.map((location) {
+                                        return DropdownMenuItem(
+                                          value: location.id,
+                                          child: Text('${location.name} - ${location.city}'),
+                                        );
+                                      }).toList(),
+                                      onChanged: (value) {
+                                        if (value != null) {
+                                          final selectedLocation = locations
+                                              .firstWhere((loc) => loc.id == value);
+                                          setState(() {
+                                            _selectedLokasiId = value;
+                                            _selectedLokasiName = selectedLocation.name;
+                                          });
+                                        }
+                                      },
+                                      validator: (value) => value?.isEmpty ?? true
+                                          ? 'Lokasi wajib dipilih'
+                                          : null,
+                                    );
+                                  },
                                 ),
                       SizedBox(height: isWeb ? 20 : 16),
 
@@ -1279,9 +1322,7 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
                   SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isUploading || 
-                                 (_selectedFile == null && _webFile == null) ||
-                                 _selectedLokasiId.isEmpty
+                      onPressed: _isUploading || (_selectedFile == null && _webFile == null) 
                           ? null 
                           : _uploadEvidence,
                       child: _isUploading
@@ -1568,13 +1609,6 @@ class _EvidenceUploadDialogState extends State<EvidenceUploadDialog> {
     if (_selectedFile == null && _webFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Pilih file terlebih dahulu')),
-      );
-      return;
-    }
-
-    if (_selectedLokasiId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Akun Anda belum memiliki lokasi. Hubungi admin.')),
       );
       return;
     }

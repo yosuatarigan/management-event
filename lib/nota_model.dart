@@ -9,11 +9,12 @@ enum StatusNota {
 
 class NotaModel {
   final String notaId;
-  final String projectId;  // Added
+  final String projectId;
   final String koordinatorId;
   final String koordinatorName;
   final String lokasiId;
   final String lokasiName;
+  final String jenis;
   final DateTime tanggal;
   final double nominal;
   final String keperluan;
@@ -27,11 +28,12 @@ class NotaModel {
 
   NotaModel({
     required this.notaId,
-    required this.projectId,  // Added
+    required this.projectId,
     required this.koordinatorId,
     required this.koordinatorName,
     required this.lokasiId,
     required this.lokasiName,
+    required this.jenis,
     required this.tanggal,
     required this.nominal,
     required this.keperluan,
@@ -47,11 +49,12 @@ class NotaModel {
   factory NotaModel.fromMap(Map<String, dynamic> map, String id) {
     return NotaModel(
       notaId: id,
-      projectId: map['project_id'] ?? '',  // Added
+      projectId: map['project_id'] ?? '',
       koordinatorId: map['koordinator_id'] ?? '',
       koordinatorName: map['koordinator_name'] ?? '',
       lokasiId: map['lokasi_id'] ?? '',
       lokasiName: map['lokasi_name'] ?? '',
+      jenis: map['jenis'] ?? 'Lain-lain',
       tanggal: map['tanggal']?.toDate() ?? DateTime.now(),
       nominal: (map['nominal'] ?? 0).toDouble(),
       keperluan: map['keperluan'] ?? '',
@@ -70,11 +73,12 @@ class NotaModel {
 
   Map<String, dynamic> toMap() {
     return {
-      'project_id': projectId,  // Added
+      'project_id': projectId,
       'koordinator_id': koordinatorId,
       'koordinator_name': koordinatorName,
       'lokasi_id': lokasiId,
       'lokasi_name': lokasiName,
+      'jenis': jenis,
       'tanggal': tanggal,
       'nominal': nominal,
       'keperluan': keperluan,
@@ -144,11 +148,12 @@ class NotaModel {
 
   NotaModel copyWith({
     String? notaId,
-    String? projectId,  // Added
+    String? projectId,
     String? koordinatorId,
     String? koordinatorName,
     String? lokasiId,
     String? lokasiName,
+    String? jenis,
     DateTime? tanggal,
     double? nominal,
     String? keperluan,
@@ -162,11 +167,12 @@ class NotaModel {
   }) {
     return NotaModel(
       notaId: notaId ?? this.notaId,
-      projectId: projectId ?? this.projectId,  // Added
+      projectId: projectId ?? this.projectId,
       koordinatorId: koordinatorId ?? this.koordinatorId,
       koordinatorName: koordinatorName ?? this.koordinatorName,
       lokasiId: lokasiId ?? this.lokasiId,
       lokasiName: lokasiName ?? this.lokasiName,
+      jenis: jenis ?? this.jenis,
       tanggal: tanggal ?? this.tanggal,
       nominal: nominal ?? this.nominal,
       keperluan: keperluan ?? this.keperluan,
