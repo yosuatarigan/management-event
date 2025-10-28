@@ -7,11 +7,17 @@ enum StatusNota {
   reimbursed,
 }
 
+enum TipeKoordinator {
+  koordinator,
+  koordinatorIT,
+}
+
 class NotaModel {
   final String notaId;
   final String projectId;
   final String koordinatorId;
   final String koordinatorName;
+  final TipeKoordinator tipeKoordinator;
   final String lokasiId;
   final String lokasiName;
   final String jenis;
@@ -31,6 +37,7 @@ class NotaModel {
     required this.projectId,
     required this.koordinatorId,
     required this.koordinatorName,
+    required this.tipeKoordinator,
     required this.lokasiId,
     required this.lokasiName,
     required this.jenis,
@@ -52,6 +59,10 @@ class NotaModel {
       projectId: map['project_id'] ?? '',
       koordinatorId: map['koordinator_id'] ?? '',
       koordinatorName: map['koordinator_name'] ?? '',
+      tipeKoordinator: TipeKoordinator.values.firstWhere(
+        (e) => e.toString().split('.').last == map['tipe_koordinator'],
+        orElse: () => TipeKoordinator.koordinator,
+      ),
       lokasiId: map['lokasi_id'] ?? '',
       lokasiName: map['lokasi_name'] ?? '',
       jenis: map['jenis'] ?? 'Lain-lain',
@@ -76,6 +87,7 @@ class NotaModel {
       'project_id': projectId,
       'koordinator_id': koordinatorId,
       'koordinator_name': koordinatorName,
+      'tipe_koordinator': tipeKoordinator.toString().split('.').last,
       'lokasi_id': lokasiId,
       'lokasi_name': lokasiName,
       'jenis': jenis,
@@ -90,6 +102,15 @@ class NotaModel {
       'rejection_reason': rejectionReason,
       'created_at': createdAt,
     };
+  }
+
+  String get tipeKoordinatorDisplayName {
+    switch (tipeKoordinator) {
+      case TipeKoordinator.koordinator:
+        return 'Koordinator';
+      case TipeKoordinator.koordinatorIT:
+        return 'Koordinator IT';
+    }
   }
 
   String get statusDisplayName {
@@ -151,6 +172,7 @@ class NotaModel {
     String? projectId,
     String? koordinatorId,
     String? koordinatorName,
+    TipeKoordinator? tipeKoordinator,
     String? lokasiId,
     String? lokasiName,
     String? jenis,
@@ -170,6 +192,7 @@ class NotaModel {
       projectId: projectId ?? this.projectId,
       koordinatorId: koordinatorId ?? this.koordinatorId,
       koordinatorName: koordinatorName ?? this.koordinatorName,
+      tipeKoordinator: tipeKoordinator ?? this.tipeKoordinator,
       lokasiId: lokasiId ?? this.lokasiId,
       lokasiName: lokasiName ?? this.lokasiName,
       jenis: jenis ?? this.jenis,

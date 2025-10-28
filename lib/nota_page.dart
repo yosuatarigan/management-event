@@ -210,73 +210,63 @@ class _NotaPageState extends State<NotaPage> {
                                     Container(
                                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(20),
+                                        color: Colors.orange.shade50,
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
-                                        '${notaList.length} nota',
+                                        '${notaList.length} Nota',
                                         style: TextStyle(
                                           color: Colors.orange.shade700,
                                           fontWeight: FontWeight.w600,
-                                          fontSize: 16,
                                         ),
                                       ),
                                     ),
                                   ],
                                 )
-                              : Row(
+                              : Column(
                                   children: [
-                                    Icon(Icons.receipt_long, color: Colors.orange, size: 24),
-                                    SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Total Pengeluaran',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey.shade600,
-                                            ),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.receipt_long, color: Colors.orange),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Total Pengeluaran',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey.shade600,
                                           ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            'Rp ${totalAmount.toStringAsFixed(0).replaceAllMapped(
-                                              RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                                              (Match match) => '${match[1]}.',
-                                            )}',
-                                            style: TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.orange.shade700,
-                                            ),
-                                          ),
-                                        ],
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Rp ${totalAmount.toStringAsFixed(0).replaceAllMapped(
+                                        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                        (Match match) => '${match[1]}.',
+                                      )}',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.orange.shade700,
                                       ),
                                     ),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.orange.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Text(
-                                        '${notaList.length} nota',
-                                        style: TextStyle(
-                                          color: Colors.orange.shade700,
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      '${notaList.length} Nota',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 13,
                                       ),
                                     ),
                                   ],
                                 ),
                           );
                         }
-                        return Container();
+                        return SizedBox.shrink();
                       },
                     ),
-                    
-                    // Nota List
+
+                    // List
                     Expanded(
                       child: StreamBuilder<List<NotaModel>>(
                         stream: NotaService.getCurrentUserNotaByProject(currentProjectId),
@@ -286,16 +276,87 @@ class _NotaPageState extends State<NotaPage> {
                           }
 
                           if (snapshot.hasError) {
-                            return Center(child: Text('Error: ${snapshot.error}'));
+                            return Center(
+                              child: Text('Error: ${snapshot.error}'),
+                            );
                           }
 
-                          final notaList = _filterNota(snapshot.data ?? []);
+                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.receipt_long_outlined,
+                                    size: isWeb ? 80 : 64,
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    'Belum ada nota',
+                                    style: TextStyle(
+                                      fontSize: isWeb ? 18 : 16,
+                                      color: Colors.grey.shade600,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Tambahkan nota pengeluaran baru',
+                                    style: TextStyle(color: Colors.grey.shade400),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          var notaList = snapshot.data!;
+
+                          // Apply search filter
+                          if (_searchQuery.isNotEmpty) {
+                            notaList = notaList.where((nota) {
+                              return nota.jenis.toLowerCase().contains(_searchQuery) ||
+                                     nota.keperluan.toLowerCase().contains(_searchQuery) ||
+                                     nota.lokasiName.toLowerCase().contains(_searchQuery) ||
+                                     nota.formattedNominal.toLowerCase().contains(_searchQuery);
+                            }).toList();
+                          }
+
+                          // Apply jenis filter
+                          if (_selectedJenisFilter != null && _selectedJenisFilter != 'Semua') {
+                            notaList = notaList.where((nota) => nota.jenis == _selectedJenisFilter).toList();
+                          }
 
                           if (notaList.isEmpty) {
-                            return _buildEmptyState(isWeb, currentProjectId);
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    'Tidak ada hasil',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
                           }
 
-                          return _buildNotaList(notaList, isWeb);
+                          return ListView.builder(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isWeb ? 24 : 16,
+                              vertical: isWeb ? 12 : 8,
+                            ),
+                            itemCount: notaList.length,
+                            itemBuilder: (context, index) {
+                              final nota = notaList[index];
+                              return _buildNotaCard(nota, isWeb);
+                            },
+                          );
                         },
                       ),
                     ),
@@ -310,127 +371,48 @@ class _NotaPageState extends State<NotaPage> {
   }
 
   Widget _buildJenisFilter(bool isWeb) {
-    return PopupMenuButton<String?>(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: isWeb ? 16 : 12,
-          vertical: isWeb ? 12 : 8,
-        ),
-        decoration: BoxDecoration(
-          color: _selectedJenisFilter != null
-              ? Colors.orange.shade100
-              : Colors.white,
-          borderRadius: BorderRadius.circular(isWeb ? 24 : 20),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.category,
-              size: isWeb ? 18 : 16,
-              color: _selectedJenisFilter != null
-                  ? Colors.orange.shade600
-                  : Colors.grey.shade600,
-            ),
-            SizedBox(width: 6),
-            Text(
-              _selectedJenisFilter ?? 'Semua Jenis',
-              style: TextStyle(
-                color: _selectedJenisFilter != null
-                    ? Colors.orange.shade600
-                    : Colors.grey.shade600,
-                fontSize: isWeb ? 14 : 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Icon(Icons.arrow_drop_down, size: isWeb ? 20 : 16),
-          ],
-        ),
-      ),
-      itemBuilder: (context) => [
-        PopupMenuItem(value: null, child: Text('Semua Jenis')),
-        ...NotaCategories.jenisNota.map(
-          (jenis) => PopupMenuItem(
-            value: jenis,
-            child: Text(jenis),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildFilterChip('Semua', isWeb),
+          ...NotaCategories.jenisNota.map(
+            (jenis) => _buildFilterChip(jenis, isWeb),
           ),
-        ),
-      ],
-      onSelected: (value) {
-        setState(() => _selectedJenisFilter = value);
-      },
+        ],
+      ),
     );
   }
 
-  Widget _buildNotaList(List<NotaModel> notaList, bool isWeb) {
-    if (isWeb) {
-      return GridView.builder(
-        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 20,
-          mainAxisSpacing: 16,
-          childAspectRatio: 2.5,
-        ),
-        itemCount: notaList.length,
-        itemBuilder: (context, index) {
-          return _buildNotaCard(notaList[index], isWeb);
-        },
-      );
-    } else {
-      return ListView.builder(
-        padding: EdgeInsets.all(16),
-        itemCount: notaList.length,
-        itemBuilder: (context, index) {
-          return _buildNotaCard(notaList[index], isWeb);
-        },
-      );
-    }
-  }
+  Widget _buildFilterChip(String label, bool isWeb) {
+    final isSelected = _selectedJenisFilter == label || (_selectedJenisFilter == null && label == 'Semua');
+    final jenisStyle = label != 'Semua' ? NotaCategories.getJenisStyle(label) : {'color': Colors.grey, 'icon': Icons.all_inclusive};
 
-  Widget _buildEmptyState(bool isWeb, String projectId) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.receipt_outlined,
-            size: isWeb ? 80 : 64,
-            color: Colors.grey.shade400,
-          ),
-          SizedBox(height: isWeb ? 24 : 16),
-          Text(
-            'Belum ada nota pengeluaran',
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: isWeb ? 20 : 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Tambahkan nota pengeluaran pertama Anda',
-            style: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: isWeb ? 16 : 14,
-            ),
-          ),
-          SizedBox(height: isWeb ? 32 : 24),
-          ElevatedButton.icon(
-            onPressed: () => _showAddNotaDialog(projectId),
-            icon: Icon(Icons.add),
-            label: Text('Tambah Nota'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(
-                horizontal: isWeb ? 24 : 16,
-                vertical: isWeb ? 16 : 12,
-              ),
-            ),
-          ),
-        ],
+    return Padding(
+      padding: EdgeInsets.only(right: 8),
+      child: FilterChip(
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(jenisStyle['icon'], size: 16, color: isSelected ? Colors.white : jenisStyle['color']),
+            SizedBox(width: 6),
+            Text(label, style: TextStyle(fontSize: isWeb ? 14 : 13)),
+          ],
+        ),
+        selected: isSelected,
+        onSelected: (selected) {
+          setState(() {
+            _selectedJenisFilter = selected ? (label == 'Semua' ? null : label) : null;
+          });
+        },
+        selectedColor: jenisStyle['color'],
+        backgroundColor: Colors.white,
+        checkmarkColor: Colors.white,
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.white : jenisStyle['color'],
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+        side: BorderSide(color: isSelected ? jenisStyle['color'] : Colors.grey.shade300),
       ),
     );
   }
@@ -439,140 +421,133 @@ class _NotaPageState extends State<NotaPage> {
     final jenisStyle = NotaCategories.getJenisStyle(nota.jenis);
     
     return Card(
-      margin: isWeb ? EdgeInsets.zero : EdgeInsets.only(bottom: 12),
-      elevation: isWeb ? 4 : 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
-      ),
+      margin: EdgeInsets.only(bottom: isWeb ? 12 : 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isWeb ? 16 : 12)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
         onTap: () => _showDetailDialog(nota),
+        borderRadius: BorderRadius.circular(isWeb ? 16 : 12),
         child: Padding(
-          padding: EdgeInsets.all(isWeb ? 20 : 16),
+          padding: EdgeInsets.all(isWeb ? 16 : 12),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon
               Container(
-                width: isWeb ? 60 : 50,
-                height: isWeb ? 60 : 50,
+                width: isWeb ? 70 : 60,
+                height: isWeb ? 70 : 60,
                 decoration: BoxDecoration(
                   color: jenisStyle['color'].withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(isWeb ? 12 : 8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   jenisStyle['icon'],
                   color: jenisStyle['color'],
-                  size: isWeb ? 28 : 24,
+                  size: isWeb ? 30 : 26,
                 ),
               ),
               SizedBox(width: isWeb ? 16 : 12),
-              
-              // Content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Jenis Badge
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isWeb ? 10 : 8,
-                        vertical: isWeb ? 5 : 4,
+                    Text(
+                      nota.jenis,
+                      style: TextStyle(
+                        fontSize: isWeb ? 16 : 15,
+                        fontWeight: FontWeight.w600,
                       ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      nota.keperluan,
+                      style: TextStyle(
+                        fontSize: isWeb ? 14 : 13,
+                        color: Colors.grey.shade600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on, size: 14, color: Colors.grey.shade500),
+                        SizedBox(width: 4),
+                        Text(
+                          nota.lokasiName,
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                        ),
+                        SizedBox(width: 12),
+                        Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade500),
+                        SizedBox(width: 4),
+                        Text(
+                          nota.formattedTanggal,
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 6),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: jenisStyle['color'].withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        color: nota.tipeKoordinator == TipeKoordinator.koordinatorIT 
+                            ? Colors.blue.shade50 
+                            : Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        nota.jenis,
+                        nota.tipeKoordinatorDisplayName,
                         style: TextStyle(
-                          color: jenisStyle['color'],
-                          fontSize: isWeb ? 11 : 10,
+                          fontSize: 11,
+                          color: nota.tipeKoordinator == TipeKoordinator.koordinatorIT 
+                              ? Colors.blue.shade700 
+                              : Colors.green.shade700,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                    SizedBox(height: isWeb ? 10 : 8),
-                    
-                    // Amount & Date
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            nota.formattedNominal,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: isWeb ? 20 : 18,
-                              color: Colors.grey.shade800,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          nota.formattedTanggal,
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: isWeb ? 14 : 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: isWeb ? 8 : 6),
-                    
-                    // Purpose
-                    Text(
-                      nota.keperluan,
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontSize: isWeb ? 16 : 14,
-                      ),
-                      maxLines: isWeb ? 1 : 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: isWeb ? 6 : 4),
-                    
-                    // Location
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on, 
-                          size: isWeb ? 16 : 14, 
-                          color: Colors.grey.shade600,
-                        ),
-                        SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            nota.lokasiName,
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: isWeb ? 14 : 12,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    nota.formattedNominal,
+                    style: TextStyle(
+                      fontSize: isWeb ? 16 : 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange.shade700,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: nota.statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(nota.statusIcon, size: 14, color: nota.statusColor),
+                        SizedBox(width: 4),
+                        Text(
+                          nota.statusDisplayName,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: nota.statusColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  List<NotaModel> _filterNota(List<NotaModel> notaList) {
-    return notaList.where((nota) {
-      final matchesSearch = nota.keperluan.toLowerCase().contains(_searchQuery) ||
-          nota.lokasiName.toLowerCase().contains(_searchQuery) ||
-          nota.jenis.toLowerCase().contains(_searchQuery) ||
-          nota.formattedNominal.toLowerCase().contains(_searchQuery);
-      
-      final matchesJenis = _selectedJenisFilter == null ||
-          nota.jenis == _selectedJenisFilter;
-      
-      return matchesSearch && matchesJenis;
-    }).toList();
   }
 
   void _showAddNotaDialog(String projectId) {
@@ -596,21 +571,15 @@ class _NotaPageState extends State<NotaPage> {
       builder: (context) => NotaDetailDialog(nota: nota),
     );
   }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
 }
 
-// Add Nota Dialog dengan Jenis & Lokasi Otomatis
+// Add Nota Dialog
 class AddNotaDialog extends StatefulWidget {
   final String projectId;
   final VoidCallback onAdded;
 
   const AddNotaDialog({
-    Key? key, 
+    Key? key,
     required this.projectId,
     required this.onAdded,
   }) : super(key: key);
@@ -628,6 +597,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
   String _selectedLokasiId = '';
   String _selectedLokasiName = '';
   String _selectedJenis = 'Lain-lain';
+  TipeKoordinator _selectedTipeKoordinator = TipeKoordinator.koordinator;
   DateTime _selectedDate = DateTime.now();
   File? _selectedPhoto;
   Uint8List? _webImage;
@@ -636,6 +606,65 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
   @override
   void initState() {
     super.initState();
+  }
+
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    if (kIsWeb && source == ImageSource.camera) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Kamera tidak tersedia di web')),
+      );
+      return;
+    }
+    
+    if (kIsWeb) {
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        final webImage = await pickedFile.readAsBytes();
+        setState(() {
+          _webImage = webImage;
+          _selectedPhoto = null;
+        });
+      }
+    } else {
+      final pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 80,
+      );
+      if (pickedFile != null) {
+        setState(() {
+          _selectedPhoto = File(pickedFile.path);
+          _webImage = null;
+        });
+      }
+    }
+  }
+
+  Future<String> uploadImage(File? image, Uint8List? webimage) async {
+    String docnya = DateTime.now().millisecondsSinceEpoch.toString();
+    final ref = FirebaseStorage.instance.ref().child('nota_pengeluaran').child(docnya);
+
+    if (webimage == null) {
+      await ref.putFile(image!);
+    } else {
+      await ref.putData(webimage);
+    }
+
+    return await ref.getDownloadURL();
   }
 
   @override
@@ -694,7 +723,41 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                 child: Form(
                   key: _formKey,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Tipe Koordinator
+                      Text(
+                        'Tipe Koordinator',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildKoordinatorTypeCard(
+                              TipeKoordinator.koordinator,
+                              'Koordinator',
+                              Icons.person,
+                              Colors.green,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: _buildKoordinatorTypeCard(
+                              TipeKoordinator.koordinatorIT,
+                              'Koordinator IT',
+                              Icons.computer,
+                              Colors.blue,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: isWeb ? 20 : 16),
+
                       // Lokasi Dropdown
                       StreamBuilder<List<LocationModel>>(
                         stream: LocationService.getLocationsByProject(widget.projectId),
@@ -852,89 +915,46 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                         ),
                         child: Column(
                           children: [
-                            if (_selectedPhoto == null && _webImage == null) ...[
-                              Icon(
-                                Icons.camera_alt_outlined,
-                                size: isWeb ? 56 : 48,
-                                color: Colors.grey.shade400,
-                              ),
-                              SizedBox(height: 12),
-                              Text(
-                                'Foto Nota *',
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: isWeb ? 16 : 14,
-                                ),
-                              ),
-                              SizedBox(height: isWeb ? 20 : 16),
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 8,
-                                children: [
-                                  if (!kIsWeb)
-                                    ElevatedButton.icon(
-                                      onPressed: () => _pickImage(ImageSource.camera),
-                                      icon: Icon(Icons.camera_alt, size: 20),
-                                      label: Text('Kamera'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue,
-                                        foregroundColor: Colors.white,
+                            if (_selectedPhoto != null || _webImage != null) ...[
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: _webImage != null
+                                    ? Image.memory(
+                                        _webImage!,
+                                        height: isWeb ? 200 : 150,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Image.file(
+                                        _selectedPhoto!,
+                                        height: isWeb ? 200 : 150,
+                                        fit: BoxFit.cover,
                                       ),
-                                    ),
-                                  ElevatedButton.icon(
-                                    onPressed: () => _pickImage(ImageSource.gallery),
-                                    icon: Icon(Icons.photo, size: 20),
-                                    label: Text(kIsWeb ? 'Pilih File' : 'Galeri'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ] else ...[
-                              Container(
-                                height: isWeb ? 150 : 120,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: _webImage != null
-                                      ? Image.memory(_webImage!, fit: BoxFit.cover)
-                                      : Image.file(_selectedPhoto!, fit: BoxFit.cover),
-                                ),
                               ),
                               SizedBox(height: 12),
-                              Wrap(
-                                spacing: 12,
-                                children: [
-                                  ElevatedButton.icon(
-                                    onPressed: () => setState(() {
-                                      _selectedPhoto = null;
-                                      _webImage = null;
-                                    }),
-                                    icon: Icon(Icons.delete, size: 20),
-                                    label: Text('Hapus'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                  ElevatedButton.icon(
-                                    onPressed: () => _pickImage(ImageSource.gallery),
-                                    icon: Icon(Icons.refresh, size: 20),
-                                    label: Text('Ganti'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.orange,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ],
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (!kIsWeb)
+                                  ElevatedButton.icon(
+                                    onPressed: () => _pickImage(ImageSource.camera),
+                                    icon: Icon(Icons.camera_alt, size: 18),
+                                    label: Text('Kamera'),
+                                    style: ElevatedButton.styleFrom(
+                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    ),
+                                  ),
+                                if (!kIsWeb) SizedBox(width: 12),
+                                ElevatedButton.icon(
+                                  onPressed: () => _pickImage(ImageSource.gallery),
+                                  icon: Icon(Icons.photo_library, size: 18),
+                                  label: Text('Galeri'),
+                                  style: ElevatedButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -943,42 +963,45 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                 ),
               ),
             ),
-            
-            // Actions
+
+            // Bottom Actions
             Container(
               padding: EdgeInsets.all(isWeb ? 24 : 20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(isWeb ? 20 : 16),
+                ),
+              ),
               child: Row(
                 children: [
                   Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context),
+                    child: OutlinedButton(
+                      onPressed: _isUploading ? null : () => Navigator.pop(context),
                       child: Text('Batal'),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 12),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 14),
                       ),
                     ),
                   ),
                   SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isUploading || 
-                                 (_selectedPhoto == null && _webImage == null)
-                          ? null 
-                          : _submitNota,
+                      onPressed: _isUploading ? null : _submitNota,
                       child: _isUploading
                           ? SizedBox(
                               height: 20,
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
                           : Text('Simpan'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 12),
+                        padding: EdgeInsets.symmetric(vertical: isWeb ? 16 : 14),
                       ),
                     ),
                   ),
@@ -991,63 +1014,43 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
     );
   }
 
-  void _selectDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+  Widget _buildKoordinatorTypeCard(TipeKoordinator type, String label, IconData icon, Color color) {
+    final isSelected = _selectedTipeKoordinator == type;
+    
+    return InkWell(
+      onTap: () => setState(() => _selectedTipeKoordinator = type),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.1) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.shade300,
+            width: 2,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? color : Colors.grey.shade400,
+              size: 32,
+            ),
+            SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected ? color : Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
-    
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
-    }
-  }
-
-  Future<void> _pickImage(ImageSource source) async {
-    if (kIsWeb && source == ImageSource.camera) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Kamera tidak tersedia di web')),
-      );
-      return;
-    }
-    
-    if (kIsWeb) {
-      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-      if (pickedFile != null) {
-        final webImage = await pickedFile.readAsBytes();
-        setState(() {
-          _webImage = webImage;
-          _selectedPhoto = null;
-        });
-      }
-    } else {
-      final pickedFile = await _picker.pickImage(
-        source: source,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 80,
-      );
-      if (pickedFile != null) {
-        setState(() {
-          _selectedPhoto = File(pickedFile.path);
-          _webImage = null;
-        });
-      }
-    }
-  }
-
-  Future<String> uploadImage(File? image, Uint8List? webimage) async {
-    String docnya = DateTime.now().millisecondsSinceEpoch.toString();
-    final ref = FirebaseStorage.instance.ref().child('nota_pengeluaran').child(docnya);
-
-    if (webimage == null) {
-      await ref.putFile(image!);
-    } else {
-      await ref.putData(webimage);
-    }
-
-    return await ref.getDownloadURL();
   }
 
   Future<void> _submitNota() async {
@@ -1076,6 +1079,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
         notaId: '',
         koordinatorId: currentUser.uid,
         koordinatorName: currentUserData.name,
+        tipeKoordinator: _selectedTipeKoordinator,
         lokasiId: _selectedLokasiId,
         lokasiName: _selectedLokasiName,
         projectId: widget.projectId,
@@ -1236,6 +1240,8 @@ class NotaDetailDialog extends StatelessWidget {
                     SizedBox(height: 20),
                     
                     // Info
+                    _buildInfoRow('Tipe', nota.tipeKoordinatorDisplayName, Icons.badge, 
+                        nota.tipeKoordinator == TipeKoordinator.koordinatorIT ? Colors.blue : Colors.green),
                     _buildInfoRow('Jenis', nota.jenis, jenisStyle['icon'], jenisStyle['color']),
                     _buildInfoRow('Tanggal', nota.formattedTanggal, Icons.calendar_today, Colors.grey.shade600),
                     _buildInfoRow('Lokasi', nota.lokasiName, Icons.location_on, Colors.grey.shade600),
