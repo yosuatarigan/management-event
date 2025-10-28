@@ -11,7 +11,6 @@ import 'nota_categories.dart';
 import 'location_service.dart';
 import 'location_model.dart';
 import 'user_service.dart';
-import 'user_model.dart';
 import 'session_manager.dart';
 
 class NotaPage extends StatefulWidget {
@@ -634,37 +633,9 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
   Uint8List? _webImage;
   bool _isUploading = false;
 
-  UserModel? _currentUser;
-  bool _isLoadingUser = true;
-
   @override
   void initState() {
     super.initState();
-    _loadUserDataAndSetLocation();
-  }
-
-  Future<void> _loadUserDataAndSetLocation() async {
-    final user = await UserService.getCurrentUser();
-
-    if (user != null && user.locationId != null && user.locationId!.isNotEmpty) {
-      try {
-        final userLocation = await LocationService.getLocationById(user.locationId!);
-        
-        if (userLocation != null) {
-          setState(() {
-            _selectedLokasiId = userLocation.id;
-            _selectedLokasiName = '${userLocation.name} - ${userLocation.city}';
-          });
-        }
-      } catch (e) {
-        print('Error loading user location: $e');
-      }
-    }
-
-    setState(() {
-      _currentUser = user;
-      _isLoadingUser = false;
-    });
   }
 
   @override
@@ -724,46 +695,67 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      // Lokasi (Otomatis)
-                      _isLoadingUser
-                          ? Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 24.0),
-                              child: Center(child: CircularProgressIndicator()),
-                            )
-                          : _selectedLokasiId.isNotEmpty
-                              ? TextFormField(
-                                  initialValue: _selectedLokasiName,
-                                  readOnly: true,
-                                  decoration: InputDecoration(
-                                    labelText: 'Lokasi (Otomatis)',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                      // Lokasi Dropdown
+                      StreamBuilder<List<LocationModel>>(
+                        stream: LocationService.getLocationsByProject(widget.projectId),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Center(child: CircularProgressIndicator());
+                          }
+                          
+                          final locations = snapshot.data ?? [];
+                          
+                          if (locations.isEmpty) {
+                            return Container(
+                              padding: EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.orange.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.warning_amber, color: Colors.orange.shade600),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Belum ada lokasi di proyek ini.',
+                                      style: TextStyle(color: Colors.orange.shade600),
                                     ),
-                                    prefixIcon: Icon(Icons.location_on),
-                                    filled: true,
-                                    fillColor: Colors.grey[200],
                                   ),
-                                )
-                              : Container(
-                                  padding: EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.red.shade200),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.error_outline, color: Colors.red.shade600),
-                                      SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          'Akun Anda belum memiliki lokasi. Hubungi admin.',
-                                          style: TextStyle(color: Colors.red.shade600),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                ],
+                              ),
+                            );
+                          }
+                          
+                          return DropdownButtonFormField<String>(
+                            value: _selectedLokasiId.isEmpty ? null : _selectedLokasiId,
+                            decoration: InputDecoration(
+                              labelText: 'Lokasi *',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: Icon(Icons.location_on),
+                            ),
+                            items: locations.map((location) {
+                              return DropdownMenuItem(
+                                value: location.id,
+                                child: Text('${location.name} - ${location.city}'),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                final selectedLocation = locations.firstWhere((loc) => loc.id == value);
+                                setState(() {
+                                  _selectedLokasiId = value;
+                                  _selectedLokasiName = selectedLocation.name;
+                                });
+                              }
+                            },
+                            validator: (value) => value?.isEmpty ?? true ? 'Lokasi wajib dipilih' : null,
+                          );
+                        },
+                      ),
                       SizedBox(height: isWeb ? 20 : 16),
 
                       // Jenis
@@ -970,8 +962,7 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: _isUploading || 
-                                 (_selectedPhoto == null && _webImage == null) ||
-                                 _selectedLokasiId.isEmpty
+                                 (_selectedPhoto == null && _webImage == null)
                           ? null 
                           : _submitNota,
                       child: _isUploading
@@ -1065,13 +1056,6 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
     if (_selectedPhoto == null && _webImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Foto nota wajib diupload')),
-      );
-      return;
-    }
-
-    if (_selectedLokasiId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Akun Anda belum memiliki lokasi. Hubungi admin.')),
       );
       return;
     }
