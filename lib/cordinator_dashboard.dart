@@ -4,6 +4,7 @@ import 'ba_selection_page.dart';
 import 'evidence_page.dart';
 import 'nota_page.dart';
 import 'absensi_page.dart';
+import 'laporan_visual_page.dart';
 import 'user_service.dart';
 import 'user_model.dart';
 import 'project_service.dart';
@@ -594,7 +595,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
                         builder:
                             (context) => BASelectionPage(
                               role: 'coordinator',
-                            ), // Pass role
+                            ),
                       ),
                     );
                   }
@@ -644,6 +645,22 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => AbsensiPage()),
+                    );
+                  }
+                  : null,
+        ),
+        _buildMenuCard(
+          icon: Icons.bar_chart,
+          title: 'Laporan Visual',
+          subtitle: 'Lihat laporan visual kegiatan',
+          color: Colors.teal,
+          isWeb: isWeb,
+          onTap:
+              currentProject != null
+                  ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => LaporanVisualPage()),
                     );
                   }
                   : null,
