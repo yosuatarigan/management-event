@@ -49,262 +49,295 @@ class _BADismantleViewPageState extends State<BADismantleViewPage> {
     super.dispose();
   }
 
-  Future<void> _generateAndSharePDF(BuildContext context, Map<String, dynamic> data) async {
+  // Ganti fungsi _generateAndSharePDF di file Anda dengan fungsi ini
+
+Future<void> _generateAndSharePDF(BuildContext context, Map<String, dynamic> data) async {
+  try {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final pdf = pw.Document();
+
+    // Load images from assets
+    pw.MemoryImage? image1;
+    pw.MemoryImage? image2;
+    
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
+      final imageData1 = await rootBundle.load('assets/badismantle1.png');
+      final imageData2 = await rootBundle.load('assets/badismantle2.png');
+      image1 = pw.MemoryImage(imageData1.buffer.asUint8List());
+      image2 = pw.MemoryImage(imageData2.buffer.asUint8List());
+    } catch (e) {
+      print('Logo images not found: $e');
+    }
 
-      final pdf = pw.Document();
-
-      // Load images from assets
-      pw.MemoryImage? image1;
-      pw.MemoryImage? image2;
-      
-      try {
-        final imageData1 = await rootBundle.load('assets/badismantle1.png');
-        final imageData2 = await rootBundle.load('assets/badismantle2.png');
-        image1 = pw.MemoryImage(imageData1.buffer.asUint8List());
-        image2 = pw.MemoryImage(imageData2.buffer.asUint8List());
-      } catch (e) {
-        print('Logo images not found: $e');
-      }
-
-      pdf.addPage(
-        pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(30),
-          build: (context) => [
-            // Images Header - Left aligned
-            if (image1 != null && image2 != null)
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.start,
-                children: [
-                  pw.Image(image1, width: 60, height: 60),
-                  pw.SizedBox(width: 16),
-                  pw.Image(image2, width: 60, height: 60),
-                ],
-              ),
-            if (image1 != null && image2 != null) pw.SizedBox(height: 16),
-            
-            // Text Header
-            pw.Center(
-              child: pw.Column(
-                children: [
-                  pw.Text('BERITA ACARA', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 4),
-                  pw.Text('PEMBONGKARAN SARANA PRASARANA', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 4),
-                  pw.Text('JASA PENDUKUNG PENYELENGGARAAN KEGIATAN SELEKSI KOMPETENSI',
-                      style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
-                  pw.SizedBox(height: 4),
-                  pw.Text('PPPK TAHAP II KATEGORI JUMLAH PESERTA PER SESI ${data['peserta']} ORANG',
-                      style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
-                  pw.SizedBox(height: 4),
-                  pw.Text('TITIK LOKASI SELEKSI MANDIRI BKN ${data['tilok']}',
-                      style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
-                  pw.SizedBox(height: 4),
-                  pw.Text('TAHUN 2025', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 20),
-            pw.Text(
-              'Pada hari ini ${data['hari']} tanggal ${data['tanggal']} bulan ${data['bulan']} tahun Dua Ribu Dua Puluh Lima, telah dilakukan pembongkaran sarana dan prasarana untuk keperluan Jasa Pendukung Penyelenggaraan Kegiatan Seleksi Kompetensi PPPK Tahap II Kategori Jumlah Peserta Per Sesi ${data['peserta']} Orang di titik lokasi mandiri ${data['tilok']} Tahun Anggaran 2025 yang berlokasi di ${data['alamat']} dengan rincian sebagai berikut :',
-              textAlign: pw.TextAlign.justify,
-              style: const pw.TextStyle(fontSize: 10),
-            ),
-            pw.SizedBox(height: 16),
-            pw.Text('1. SARANA PRASARANA', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 8),
-            _buildPdfTable([
-              ['No', 'Uraian', 'Qty', 'Satuan', 'Baik', 'Tidak Baik'],
-              ['1', 'Laptop client peserta ujian', '${data['peserta']}', 'Unit', '${data['peserta']}', '-'],
-              ['2', 'UPS router/switch hub', '${data['b1']}', 'Unit', '${data['b1']}', '-'],
-              ['3', 'UPS modem internet', '${data['b2']}', 'Unit', '${data['b2']}', '-'],
-              ['4', 'Laptop registrasi', '${data['b4']}', 'Unit', '${data['b4']}', '-'],
-              ['5', 'Metal Detector', '${data['b3']}', 'Unit', '${data['b3']}', '-'],
-              ['6', 'Webcam registrasi', '${data['b5']}', 'Unit', '${data['b5']}', '-'],
-              ['7', 'LED ring light', '${data['b7']}', 'Unit', '${data['b7']}', '-'],
-              ['8', 'Barcode scanner', '${data['b6']}', 'Unit', '${data['b6']}', '-'],
-              ['9', 'Laptop monitoring', '${data['b9']}', 'Unit', '${data['b9']}', '-'],
-              ['10', 'Webcam monitoring', '${data['b10']}', 'Unit', '${data['b10']}', '-'],
-              ['11', 'Printer panitia ruang ujian', '${data['b11']}', 'Unit', '${data['b11']}', '-'],
-              ['12', 'Laptop admin', '${data['b12']}', 'Unit', '${data['b12']}', '-'],
-              ['13', 'Container box', '${data['b13']}', 'Unit', '${data['b13']}', '-'],
-              ['14', 'LCD Projector', '${data['b14']}', 'Unit', '${data['b14']}', '-'],
-              ['15', 'Laptop LCD Projector', '${data['b15']}', 'Unit', '${data['b15']}', '-'],
-              ['16', 'CCTV', '${data['b16']}', 'Unit', '${data['b16']}', '-'],
-              ['17', 'Printer Registrasi', '${data['b8']}', 'Unit', '${data['b8']}', '-'],
-              ['18', 'TV LCD + Standing Bracket', '${data['b19']}', 'Unit', '${data['b19']}', '-'],
-              ['19', 'Hardisk 2TB', '${data['b20']}', 'Unit', '${data['b20']}', '-'],
-            ]),
-            pw.SizedBox(height: 16),
-            pw.Text('2. MEJA & KURSI', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 8),
-            _buildPdfTable([
-              ['No', 'Uraian', 'Qty', 'Satuan', 'Baik', 'Tidak Baik'],
-              ['1', 'Meja Cover Ujian', '${data['b21']}', 'Unit', '${data['b21']}', '-'],
-              ['2', 'Kursi Cover Ujian', '${data['b22']}', 'Unit', '${data['b22']}', '-'],
-              ['3', 'Meja Penitipan Barang', '${data['b23']}', 'Unit', '${data['b23']}', '-'],
-              ['4', 'Kursi Penitipan', '${data['b24']}', 'Unit', '${data['b24']}', '-'],
-              ['5', 'Meja Transit', '${data['b25']}', 'Unit', '${data['b25']}', '-'],
-              ['6', 'Kursi Transit', '${data['b26']}', 'Unit', '${data['b26']}', '-'],
-              ['7', 'Kursi Peserta', '${data['b27']}', 'Unit', '${data['b27']}', '-'],
-              ['8', 'Meja Registrasi', '${data['b28']}', 'Unit', '${data['b28']}', '-'],
-              ['9', 'Kursi Registrasi', '${data['b29']}', 'Unit', '${data['b29']}', '-'],
-            ]),
-            pw.SizedBox(height: 16),
-            pw.Text('3. TENDA & AC', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 8),
-            _buildPdfTable([
-              ['No', 'Uraian', 'Qty', 'Satuan', 'Baik', 'Tidak Baik'],
-              ['1', 'Tenda Semi Dekor', '${data['b30']}', 'm2', '${data['b30']}', '-'],
-              ['2', 'Tenda sarnafil', '${data['b32']}', 'm2', '${data['b32']}', '-'],
-              ['3', 'AC Standing', '${data['b36']}', 'unit', '${data['b36']}', '-'],
-              ['4', 'Misty Fan', '${data['b38']}', 'unit', '${data['b38']}', '-'],
-            ]),
-            pw.SizedBox(height: 16),
-            pw.Text('4. LAINNYA', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 8),
-            _buildPdfTable([
-              ['No', 'Uraian', 'Qty', 'Satuan', 'Baik', 'Tidak Baik'],
-              ['1', 'Pembatas Antrian', '${data['b34']}', 'Unit', '${data['b34']}', '-'],
-              ['2', 'Sound Portable', '${data['b35']}', 'Unit', '${data['b35']}', '-'],
-              ['3', 'Genset (KVA)', '${data['b39']}', 'KVA', '${data['b39']}', '-'],
-              ['4', 'APAR', '2', 'Buah', '2', '-'],
-              ['5', 'Kotak P3K', '1', 'Buah', '1', '-'],
-            ]),
-            pw.SizedBox(height: 16),
-            pw.Text('5. BACKUP/CADANGAN', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 8),
-            _buildPdfTable([
-              ['No', 'Uraian', 'Qty', 'Satuan', 'Baik', 'Tidak Baik'],
-              ['1', 'Laptop Cadangan', '${data['cadangan']}', 'unit', '${data['cadangan']}', '-'],
-            ]),
-            pw.SizedBox(height: 20),
-            pw.Text(
-              'Demikian Berita Acara ini dibuat dengan sebenarnya, untuk dapat diketahui dan dipergunakan sebagaimana mestinya.',
-              textAlign: pw.TextAlign.justify,
-              style: const pw.TextStyle(fontSize: 10),
-            ),
-            pw.SizedBox(height: 30),
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(30),
+        build: (context) => [
+          // Images Header - Left aligned
+          if (image1 != null && image2 != null)
             pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: pw.MainAxisAlignment.start,
               children: [
-                pw.Expanded(
-                  child: pw.Column(
-                    children: [
-                      pw.Text('Yang Menerima :', style: const pw.TextStyle(fontSize: 10)),
-                      pw.Text('Koordinator', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                      pw.SizedBox(height: 10),
-                      // Signature image if exists
-                      if (data['coordinatorSignature'] != null)
-                        pw.Container(
-                          height: 50,
-                          child: pw.Image(pw.MemoryImage(base64Decode(data['coordinatorSignature']))),
-                        )
-                      else
-                        pw.SizedBox(height: 50),
-                      pw.SizedBox(height: 5),
-                      pw.Text(data['koordinator'] ?? '', style: const pw.TextStyle(fontSize: 10)),
-                    ],
-                  ),
-                ),
-                pw.Expanded(
-                  child: pw.Column(
-                    children: [
-                      pw.Text('Yang menyerahkan :', style: const pw.TextStyle(fontSize: 10)),
-                      pw.Text('Tim Pengawas BKN', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                      pw.SizedBox(height: 10),
-                      // Signature image if exists
-                      if (data['approverSignature'] != null)
-                        pw.Container(
-                          height: 50,
-                          child: pw.Image(pw.MemoryImage(base64Decode(data['approverSignature']))),
-                        )
-                      else
-                        pw.SizedBox(height: 50),
-                      pw.SizedBox(height: 5),
-                      pw.Text(data['pengawas'] ?? '', style: const pw.TextStyle(fontSize: 10)),
-                      pw.Text('NIP. ${data['nipPengawas'] ?? ''}', style: const pw.TextStyle(fontSize: 10)),
-                    ],
-                  ),
-                ),
+                pw.Image(image1, width: 60, height: 60),
+                pw.SizedBox(width: 16),
+                pw.Image(image2, width: 60, height: 60),
               ],
             ),
-          ],
-        ),
-      );
-
-      final output = await getTemporaryDirectory();
-      final file = File('${output.path}/BA_Dismantle_${data['tilok']}.pdf');
-      await file.writeAsBytes(await pdf.save());
-
-      Navigator.pop(context);
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('PDF Berhasil Dibuat'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+          if (image1 != null && image2 != null) pw.SizedBox(height: 16),
+          
+          // Text Header
+          pw.Center(
+            child: pw.Column(
+              children: [
+                pw.Text('BERITA ACARA', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 4),
+                pw.Text('PEMBONGKARAN SARANA PRASARANA', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 4),
+                pw.Text('JASA PENDUKUNG PENYELENGGARAAN KEGIATAN SELEKSI KOMPETENSI',
+                    style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
+                pw.SizedBox(height: 4),
+                pw.Text('PPPK TAHAP II KATEGORI JUMLAH PESERTA PER SESI ${data['peserta']} ORANG',
+                    style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
+                pw.SizedBox(height: 4),
+                pw.Text('TITIK LOKASI SELEKSI MANDIRI BKN ${data['tilok']}',
+                    style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center),
+                pw.SizedBox(height: 4),
+                pw.Text('TAHUN 2025', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 20),
+          pw.Text(
+            'Pada hari ini ${data['hari']} tanggal ${data['tanggal']} bulan ${data['bulan']} tahun Dua Ribu Dua Puluh Lima, telah dilakukan pembongkaran sarana dan prasarana untuk keperluan Jasa Pendukung Penyelenggaraan Kegiatan Seleksi Kompetensi PPPK Tahap II Kategori Jumlah Peserta Per Sesi ${data['peserta']} Orang di titik lokasi mandiri ${data['tilok']} Tahun Anggaran 2025 yang berlokasi di ${data['alamat']} dengan rincian sebagai berikut :',
+            textAlign: pw.TextAlign.justify,
+            style: const pw.TextStyle(fontSize: 10),
+          ),
+          pw.SizedBox(height: 16),
+          
+          // A. SARANA PRASARANA
+          pw.Text('A. SARANA PRASARANA', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 8),
+          _buildPdfTable([
+            ['No', 'Uraian', 'Jumlah terbongkar', '', 'Status', '', 'Keterangan'],
+            ['', '', 'Kuantitas', 'Satuan', 'Baik', 'Tidak Baik', '**)'],
+            ['1', 'Sewa laptop client untuk peserta ujian termasuk jaringan lan dan elektrikal', '${data['peserta']}', 'Unit', '${data['peserta']}', '-', ''],
+            ['2', 'Sewa UPS untuk router/switch hub', '${data['b1']}', 'Unit', '${data['b1']}', '-', ''],
+            ['3', 'Sewa UPS untuk modem internet dan switch', '${data['b2']}', 'Unit', '${data['b2']}', '-', ''],
+            ['4', 'Sewa laptop client untuk registrasi peserta termasuk jaringan lan dan elektrikal', '${data['b4']}', 'Unit', '${data['b4']}', '-', ''],
+            ['5', 'Sewa Metal Detector', '${data['b3']}', 'Unit', '${data['b3']}', '-', ''],
+            ['6', 'Sewa webcam eksternal include tripod untuk registrasi peserta', '${data['b5']}', 'Unit', '${data['b5']}', '-', ''],
+            ['7', 'Sewa LED ring light include tripod untuk registrasi', '${data['b7']}', 'Unit', '${data['b7']}', '-', ''],
+            ['8', 'Sewa barcode scanner untuk registrasi peserta', '${data['b6']}', 'Unit', '${data['b6']}', '-', ''],
+            ['9', 'Sewa laptop client untuk monitoring ruang ujian termasuk jaringan lan dan elektrikal', '${data['b9']}', 'Unit', '${data['b9']}', '-', ''],
+            ['10', 'Sewa Webcam eksternal include tripod untuk monitoring ruang ujian', '${data['b10']}', 'Unit', '${data['b10']}', '-', ''],
+            ['11', 'Sewa laptop untuk admin termasuk jaringan lan dan elektrikal', '${data['b12']}', 'Unit', '${data['b12']}', '-', ''],
+            ['12', 'Sewa Meja Cover untuk Penerimaan dan pengambilan tempat penitipan barang', '${data['b23']}', 'Unit', '${data['b23']}', '-', ''],
+            ['13', 'Sewa Kursi susun tanpa cover untuk Penerimaan dan pengambilan tempat penitipan barang', '${data['b24']}', 'Unit', '${data['b24']}', '-', ''],
+            ['14', 'Sewa Container box', '${data['b13']}', 'Unit', '${data['b13']}', '-', ''],
+            ['15', 'Sewa Printer termasuk toner/tinta panitia ruang ujian', '${data['b11']}', 'Unit', '${data['b11']}', '-', ''],
+            ['16', 'Sewa laptop untuk LCD Projector termasuk elektrikal', '${data['b15']}', 'Unit', '${data['b15']}', '-', ''],
+            ['17', 'Sewa LCD Projector termasuk screen untuk ruang ujian min 3000 lumens', '${data['b14']}', 'Unit', '${data['b14']}', '-', ''],
+            ['18', 'Sewa CCTV termasuk display dan media penyimpanan', '${data['b16']}', 'Unit', '${data['b16']}', '-', ''],
+            ['19', 'Hardisk 2 TB', '${data['b20']}', 'Unit', '${data['b20']}', '-', ''],
+            ['20', 'Sewa TV LCD termasuk standing bracket, elektrikal, dan Flashdisk min 2GB', '${data['b19']}', 'Unit', '${data['b19']}', '-', ''],
+            ['21', 'Sewa meja cover untuk ruang ujian (${data['peserta']} unit + ${data['cadangan']} unit untuk cadangan)', '${data['b21']}', 'Unit', '${data['b21']}', '-', ''],
+            ['22', 'Sewa kursi susun cover untuk ruang ujian (${data['peserta']} unit + ${data['cadangan']} unit untuk cadangan)', '${data['b22']}', 'Unit', '${data['b22']}', '-', ''],
+            ['23', 'Sewa Meja Cover untuk panitia ruang transit', '${data['b25']}', 'Unit', '${data['b25']}', '-', ''],
+            ['24', 'Sewa Kursi susun tanpa cover untuk panitia ruang transit', '${data['b26']}', 'Unit', '${data['b26']}', '-', ''],
+            ['25', 'Sewa Printer termasuk toner/tinta registrasi', '${data['b8']}', 'Unit', '${data['b8']}', '-', ''],
+            ['26', 'Sewa kursi susun tanpa cover untuk peserta ruang transit, Registrasi, Steril', '${data['b27']}', 'Unit', '${data['b27']}', '-', ''],
+            ['27', 'Sewa Meja Cover untuk panitia ruang registrasi', '${data['b28']}', 'Unit', '${data['b28']}', '-', ''],
+            ['28', 'Sewa Kursi susun tanpa cover untuk panitia ruang registrasi', '${data['b29']}', 'Unit', '${data['b29']}', '-', ''],
+            ['29', 'Sewa pembatas antrian (1 kaki, 1 tiang,1 tali)', '${data['b34']}', 'Unit', '${data['b34']}', '-', ''],
+            ['30', 'Sewa Sound portable untuk ruang transit, registrasi, steril, ruang ujian dan Elektrikal', '${data['b35']}', 'Unit', '${data['b35']}', '-', ''],
+            ['31', 'Sewa Genset ${data['peserta']} KVA termasuk Solar + Teknisi Stanby min 12 Jam', '${data['b39']}', 'Unit', '${data['b39']}', '-', ''],
+            ['32', 'ATK peserta dan panitia', '1', 'Paket', '1', '-', ''],
+            ['33', 'Sewa Gedung (Ruang untuk ujian)', '1', 'Unit', '1', '-', ''],
+            ['34', 'Sistem Aplikasi Pengelolaan dan Pengendalian Pelaksanaan Seleksi di Seluruh Titik Lokasi Tes secara Online', '1', 'aplikasi', '1', '-', ''],
+          ], true),
+          pw.SizedBox(height: 16),
+          
+          // B. TENDA SEMI DEKOR, TENDA SARNAFIL, AC STANDING, DAN MISTY FAN
+          pw.Text('B. TENDA SEMI DEKOR, TENDA SARNAFIL, AC STANDING, DAN MISTY FAN', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 8),
+          _buildPdfTable([
+            ['No', 'Uraian', 'Jumlah Terbongkar', '', 'Status', '', 'Keterangan'],
+            ['', '', 'Kuantitas', 'Satuan', 'Baik', 'Tidak Baik', '**)'],
+            ['1', 'Sewa Tenda Semi Dekor Ruang Transit, Steril, Registrasi, Penitipan Barang + lampu min 40watt (tiap 25 m2) termasuk Elektrikal', '${data['b30']}', 'm2', '${data['b30']}', '-', ''],
+            ['2', 'Sewa tenda sarnafil untuk ruang medis termasuk elektrikal dan lampu (tiap 25 m2)', '${data['b32']}', 'm2', '${data['b32']}', '-', ''],
+            ['3', 'Sewa AC Standing untuk ruang ujian dan medis termasuk Elektrikal', '${data['b36']}', 'unit', '${data['b36']}', '-', ''],
+            ['4', 'Sewa Misty Fan termasuk pengisian airnya dan elektrikal untuk ruang transit, registrasi, steril', '${data['b38']}', 'unit', '${data['b38']}', '-', ''],
+          ], true),
+          pw.SizedBox(height: 16),
+          
+          // C. SARANA PRASARANA BACKUP/CADANGAN
+          pw.Text('C. SARANA PRASARANA BACKUP/CADANGAN', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 8),
+          _buildPdfTable([
+            ['No', 'Uraian', 'Jumlah sesuai kontrak dan perubahannnya', '', 'Jumlah terpasang', '', 'Status', '', 'Keterangan'],
+            ['', '', 'Kuantitas', 'Satuan', 'Kuantitas', 'Satuan', 'Baik', 'Tidak Baik', '**)'],
+            ['1', 'Laptop Cadangan Touch Screen (5% dari total laptop ujian)', '${data['cadangan']}', 'unit', '${data['cadangan']}', 'unit', '${data['cadangan']}', '-', ''],
+          ], true),
+          pw.SizedBox(height: 16),
+          
+          // D. SARANA PRASARANA LAINNYA
+          pw.Text('D. SARANA PRASARANA LAINNYA', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 8),
+          _buildPdfTable([
+            ['No', 'Uraian', 'Jumlah sesuai kontrak dan perubahannnya', '', 'Jumlah terpasang', '', 'Status', '', 'Keterangan'],
+            ['', '', 'Kuantitas', 'Satuan', 'Kuantitas', 'Satuan', 'Baik', 'Tidak Baik', '**)'],
+            ['1', 'APAR Powder 9 Kg', '2', 'Buah', '2', 'Buah', '2', '-', ''],
+            ['2', 'Kotak P3K Tipe C + Lengkap Dengan Isi', '1', 'Buah', '1', 'Buah', '1', '-', ''],
+            ['3', 'Oksigen 500cc', '12', 'Buah', '12', 'Buah', '12', '-', ''],
+            ['4', 'Kursi Roda', '2', 'Buah', '2', 'Buah', '2', '-', ''],
+          ], true),
+          pw.SizedBox(height: 20),
+          
+          pw.Text(
+            'Demikian Berita Acara ini dibuat dengan sebenarnya, untuk dapat diketahui dan dipergunakan sebagaimana mestinya.',
+            textAlign: pw.TextAlign.justify,
+            style: const pw.TextStyle(fontSize: 10),
+          ),
+          pw.SizedBox(height: 30),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              ListTile(
-                leading: const Icon(Icons.share, color: Colors.blue),
-                title: const Text('Share PDF'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  await Share.shareXFiles([XFile(file.path)], text: 'BA Dismantle - ${data['tilok']}');
-                },
+              pw.Expanded(
+                child: pw.Column(
+                  children: [
+                    pw.Text('Yang Menerima :', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('Koordinator', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('PT. Mitra Era Global', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                    pw.SizedBox(height: 10),
+                    if (data['coordinatorSignature'] != null)
+                      pw.Container(
+                        height: 50,
+                        child: pw.Image(pw.MemoryImage(base64Decode(data['coordinatorSignature']))),
+                      )
+                    else
+                      pw.SizedBox(height: 50),
+                    pw.SizedBox(height: 5),
+                    pw.Text(data['koordinator'] ?? '', style: const pw.TextStyle(fontSize: 10)),
+                  ],
+                ),
               ),
-              ListTile(
-                leading: const Icon(Icons.remove_red_eye, color: Colors.green),
-                title: const Text('Preview PDF'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  await Printing.layoutPdf(onLayout: (format) async => await pdf.save());
-                },
+              pw.Expanded(
+                child: pw.Column(
+                  children: [
+                    pw.Text('Yang menyerahkan :', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('Tim Pengawas Pekerjaan BKN', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                    pw.SizedBox(height: 10),
+                    if (data['approverSignature'] != null)
+                      pw.Container(
+                        height: 50,
+                        child: pw.Image(pw.MemoryImage(base64Decode(data['approverSignature']))),
+                      )
+                    else
+                      pw.SizedBox(height: 50),
+                    pw.SizedBox(height: 5),
+                    pw.Text(data['pengawas'] ?? '', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('NIP. ${data['nipPengawas'] ?? ''}', style: const pw.TextStyle(fontSize: 10)),
+                  ],
+                ),
               ),
             ],
           ),
-        ),
-      );
-    } catch (e) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
-    }
-  }
+        ],
+      ),
+    );
 
-  pw.Widget _buildPdfTable(List<List<String>> rows) {
-    return pw.Table(
-      border: pw.TableBorder.all(color: PdfColors.grey),
-      children: rows.map((row) {
-        bool isHeader = rows.indexOf(row) == 0;
-        return pw.TableRow(
-          decoration: pw.BoxDecoration(color: isHeader ? PdfColors.blue100 : null),
-          children: row.map((cell) {
-            return pw.Padding(
-              padding: const pw.EdgeInsets.all(4),
-              child: pw.Text(
-                cell,
-                style: pw.TextStyle(
-                  fontSize: 8,
-                  fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
-                ),
-                textAlign: pw.TextAlign.center,
-              ),
-            );
-          }).toList(),
-        );
-      }).toList(),
+    final output = await getTemporaryDirectory();
+    final file = File('${output.path}/BA_Dismantle_${data['tilok']}.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    Navigator.pop(context);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('PDF Berhasil Dibuat'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.share, color: Colors.blue),
+              title: const Text('Share PDF'),
+              onTap: () async {
+                Navigator.pop(context);
+                await Share.shareXFiles([XFile(file.path)], text: 'BA Dismantle - ${data['tilok']}');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.remove_red_eye, color: Colors.green),
+              title: const Text('Preview PDF'),
+              onTap: () async {
+                Navigator.pop(context);
+                await Printing.layoutPdf(onLayout: (format) async => await pdf.save());
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  } catch (e) {
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
     );
   }
+}
+
+// Fungsi helper untuk membuat tabel PDF
+pw.Widget _buildPdfTable(List<List<String>> rows, bool hasDoubleHeader) {
+  return pw.Table(
+    border: pw.TableBorder.all(color: PdfColors.grey),
+    columnWidths: hasDoubleHeader ? {
+      0: const pw.FixedColumnWidth(20),
+      1: const pw.FlexColumnWidth(3),
+      2: const pw.FixedColumnWidth(40),
+      3: const pw.FixedColumnWidth(35),
+      4: const pw.FixedColumnWidth(35),
+      5: const pw.FixedColumnWidth(35),
+      6: const pw.FixedColumnWidth(45),
+    } : null,
+    children: rows.asMap().entries.map((entry) {
+      int index = entry.key;
+      List<String> row = entry.value;
+      bool isHeader = index == 0 || (hasDoubleHeader && index == 1);
+      
+      return pw.TableRow(
+        decoration: pw.BoxDecoration(
+          color: isHeader ? PdfColors.blue100 : null,
+        ),
+        children: row.asMap().entries.map((cellEntry) {
+          int colIndex = cellEntry.key;
+          String cell = cellEntry.value;
+          
+          return pw.Padding(
+            padding: const pw.EdgeInsets.all(4),
+            child: pw.Text(
+              cell,
+              style: pw.TextStyle(
+                fontSize: 8,
+                fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+              ),
+              textAlign: (colIndex == 1 && !isHeader) ? pw.TextAlign.left : pw.TextAlign.center,
+            ),
+          );
+        }).toList(),
+      );
+    }).toList(),
+  );
+}
+
+ 
 
   Future<void> _saveSignature(Map<String, dynamic> data) async {
     if (_signatureController == null || _signatureController!.isEmpty) {
