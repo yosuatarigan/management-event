@@ -50,6 +50,8 @@ class _BADismantleViewPageState extends State<BADismantleViewPage> {
   }
 
   // Ganti fungsi _generateAndSharePDF di file Anda dengan fungsi ini
+// Ganti fungsi _generateAndSharePDF di file Anda dengan fungsi ini
+// Ganti fungsi _generateAndSharePDF di file Anda dengan fungsi ini
 
 Future<void> _generateAndSharePDF(BuildContext context, Map<String, dynamic> data) async {
   try {
@@ -78,18 +80,22 @@ Future<void> _generateAndSharePDF(BuildContext context, Map<String, dynamic> dat
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(30),
+        header: (context) {
+          return pw.Column(
+            children: [
+              if (image1 != null && image2 != null)
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Image(image1, width: 60, height: 60),
+                    pw.Image(image2, width: 60, height: 60),
+                  ],
+                ),
+              pw.SizedBox(height: 16),
+            ],
+          );
+        },
         build: (context) => [
-          // Images Header - Left aligned
-          if (image1 != null && image2 != null)
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.start,
-              children: [
-                pw.Image(image1, width: 60, height: 60),
-                pw.SizedBox(width: 16),
-                pw.Image(image2, width: 60, height: 60),
-              ],
-            ),
-          if (image1 != null && image2 != null) pw.SizedBox(height: 16),
           
           // Text Header
           pw.Center(
@@ -294,46 +300,249 @@ Future<void> _generateAndSharePDF(BuildContext context, Map<String, dynamic> dat
   }
 }
 
-// Fungsi helper untuk membuat tabel PDF
+// Fungsi helper untuk membuat tabel PDF dengan merged header
 pw.Widget _buildPdfTable(List<List<String>> rows, bool hasDoubleHeader) {
-  return pw.Table(
-    border: pw.TableBorder.all(color: PdfColors.grey),
-    columnWidths: hasDoubleHeader ? {
-      0: const pw.FixedColumnWidth(20),
-      1: const pw.FlexColumnWidth(3),
-      2: const pw.FixedColumnWidth(40),
-      3: const pw.FixedColumnWidth(35),
-      4: const pw.FixedColumnWidth(35),
-      5: const pw.FixedColumnWidth(35),
-      6: const pw.FixedColumnWidth(45),
-    } : null,
-    children: rows.asMap().entries.map((entry) {
-      int index = entry.key;
-      List<String> row = entry.value;
-      bool isHeader = index == 0 || (hasDoubleHeader && index == 1);
-      
-      return pw.TableRow(
-        decoration: pw.BoxDecoration(
-          color: isHeader ? PdfColors.blue100 : null,
-        ),
-        children: row.asMap().entries.map((cellEntry) {
-          int colIndex = cellEntry.key;
-          String cell = cellEntry.value;
-          
-          return pw.Padding(
-            padding: const pw.EdgeInsets.all(4),
-            child: pw.Text(
-              cell,
-              style: pw.TextStyle(
-                fontSize: 8,
-                fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+  if (!hasDoubleHeader || rows.length < 2) {
+    return pw.Table(
+      border: pw.TableBorder.all(color: PdfColors.grey),
+      children: rows.map((row) {
+        bool isHeader = rows.indexOf(row) == 0;
+        return pw.TableRow(
+          decoration: pw.BoxDecoration(color: isHeader ? PdfColors.blue100 : null),
+          children: row.map((cell) {
+            return pw.Padding(
+              padding: const pw.EdgeInsets.all(4),
+              child: pw.Text(
+                cell,
+                style: pw.TextStyle(
+                  fontSize: 8,
+                  fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+                ),
+                textAlign: pw.TextAlign.center,
               ),
-              textAlign: (colIndex == 1 && !isHeader) ? pw.TextAlign.left : pw.TextAlign.center,
+            );
+          }).toList(),
+        );
+      }).toList(),
+    );
+  }
+
+  // Build custom header dengan merged cells menggunakan Container
+  return pw.Column(
+    children: [
+      // Header dengan border manual untuk merged cells
+      pw.Container(
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey),
+        ),
+        child: pw.Column(
+          children: [
+            // Header Row 1
+            pw.Container(
+              color: PdfColors.blue100,
+              child: pw.Row(
+                children: [
+                  // No
+                  pw.Container(
+                    width: 20,
+                    padding: const pw.EdgeInsets.all(4),
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(right: pw.BorderSide(color: PdfColors.grey)),
+                    ),
+                    child: pw.Text(
+                      rows[0][0],
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  // Uraian
+                  pw.Expanded(
+                    flex: 3,
+                    child: pw.Container(
+                      padding: const pw.EdgeInsets.all(4),
+                      decoration: const pw.BoxDecoration(
+                        border: pw.Border(right: pw.BorderSide(color: PdfColors.grey)),
+                      ),
+                      child: pw.Text(
+                        rows[0][1],
+                        style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  // Jumlah terbongkar (merged 2 kolom)
+                  pw.Container(
+                    width: 75,
+                    padding: const pw.EdgeInsets.all(4),
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(right: pw.BorderSide(color: PdfColors.grey)),
+                    ),
+                    child: pw.Text(
+                      rows[0][2],
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  // Status (merged 2 kolom)
+                  pw.Container(
+                    width: 70,
+                    padding: const pw.EdgeInsets.all(4),
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(right: pw.BorderSide(color: PdfColors.grey)),
+                    ),
+                    child: pw.Text(
+                      rows[0][4],
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  // Keterangan
+                  pw.Container(
+                    width: 45,
+                    padding: const pw.EdgeInsets.all(4),
+                    child: pw.Text(
+                      rows[0][6],
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
             ),
+            // Header Row 2 - Sub headers
+            pw.Container(
+              decoration: const pw.BoxDecoration(
+                border: pw.Border(top: pw.BorderSide(color: PdfColors.grey)),
+                color: PdfColors.blue100,
+              ),
+              child: pw.Row(
+                children: [
+                  // Empty (No)
+                  pw.Container(
+                    width: 20,
+                    padding: const pw.EdgeInsets.all(4),
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(right: pw.BorderSide(color: PdfColors.grey)),
+                    ),
+                    child: pw.Text(
+                      rows[1][0],
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  // Empty (Uraian)
+                  pw.Expanded(
+                    flex: 3,
+                    child: pw.Container(
+                      padding: const pw.EdgeInsets.all(4),
+                      decoration: const pw.BoxDecoration(
+                        border: pw.Border(right: pw.BorderSide(color: PdfColors.grey)),
+                      ),
+                      child: pw.Text(
+                        rows[1][1],
+                        style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                        textAlign: pw.TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  // Kuantitas
+                  pw.Container(
+                    width: 40,
+                    padding: const pw.EdgeInsets.all(4),
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(right: pw.BorderSide(color: PdfColors.grey)),
+                    ),
+                    child: pw.Text(
+                      rows[1][2],
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  // Satuan
+                  pw.Container(
+                    width: 35,
+                    padding: const pw.EdgeInsets.all(4),
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(right: pw.BorderSide(color: PdfColors.grey)),
+                    ),
+                    child: pw.Text(
+                      rows[1][3],
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  // Baik
+                  pw.Container(
+                    width: 35,
+                    padding: const pw.EdgeInsets.all(4),
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(right: pw.BorderSide(color: PdfColors.grey)),
+                    ),
+                    child: pw.Text(
+                      rows[1][4],
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  // Tidak Baik
+                  pw.Container(
+                    width: 35,
+                    padding: const pw.EdgeInsets.all(4),
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(right: pw.BorderSide(color: PdfColors.grey)),
+                    ),
+                    child: pw.Text(
+                      rows[1][5],
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                  // Keterangan
+                  pw.Container(
+                    width: 45,
+                    padding: const pw.EdgeInsets.all(4),
+                    child: pw.Text(
+                      rows[1][6],
+                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      // Data Rows
+      pw.Table(
+        border: pw.TableBorder.all(color: PdfColors.grey),
+        columnWidths: {
+          0: const pw.FixedColumnWidth(20),
+          1: const pw.FlexColumnWidth(3),
+          2: const pw.FixedColumnWidth(40),
+          3: const pw.FixedColumnWidth(35),
+          4: const pw.FixedColumnWidth(35),
+          5: const pw.FixedColumnWidth(35),
+          6: const pw.FixedColumnWidth(45),
+        },
+        children: rows.skip(2).map((row) {
+          return pw.TableRow(
+            children: row.asMap().entries.map((entry) {
+              int colIndex = entry.key;
+              String cell = entry.value;
+              return pw.Padding(
+                padding: const pw.EdgeInsets.all(4),
+                child: pw.Text(
+                  cell,
+                  style: const pw.TextStyle(fontSize: 8),
+                  textAlign: (colIndex == 1) ? pw.TextAlign.left : pw.TextAlign.center,
+                ),
+              );
+            }).toList(),
           );
         }).toList(),
-      );
-    }).toList(),
+      ),
+    ],
   );
 }
 
