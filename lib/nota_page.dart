@@ -596,16 +596,44 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
   
   String _selectedLokasiId = '';
   String _selectedLokasiName = '';
+  String _lokasiFullAddress = '';
   String _selectedJenis = 'Lain-lain';
   TipeKoordinator _selectedTipeKoordinator = TipeKoordinator.koordinator;
   DateTime _selectedDate = DateTime.now();
   File? _selectedPhoto;
   Uint8List? _webImage;
   bool _isUploading = false;
+  bool _isLoadingLocation = true;
 
   @override
   void initState() {
     super.initState();
+    _loadUserLocation();
+  }
+
+  Future<void> _loadUserLocation() async {
+    try {
+      final currentUser = await UserService.getCurrentUser();
+      if (currentUser == null || currentUser.locationId == null) {
+        setState(() => _isLoadingLocation = false);
+        return;
+      }
+
+      final location = await LocationService.getLocationById(currentUser.locationId!);
+      if (location != null) {
+        setState(() {
+          _selectedLokasiId = location.id;
+          _selectedLokasiName = location.name;
+          _lokasiFullAddress = location.fullAddress;
+          _isLoadingLocation = false;
+        });
+      } else {
+        setState(() => _isLoadingLocation = false);
+      }
+    } catch (e) {
+      print('Error loading user location: $e');
+      setState(() => _isLoadingLocation = false);
+    }
   }
 
   Future<void> _selectDate() async {
@@ -758,67 +786,94 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
                       ),
                       SizedBox(height: isWeb ? 20 : 16),
 
-                      // Lokasi Dropdown
-                      StreamBuilder<List<LocationModel>>(
-                        stream: LocationService.getLocationsByProject(widget.projectId),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return Center(child: CircularProgressIndicator());
-                          }
-                          
-                          final locations = snapshot.data ?? [];
-                          
-                          if (locations.isEmpty) {
-                            return Container(
-                              padding: EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.orange.shade200),
+                      // Lokasi (Read-only from user data)
+                      if (_isLoadingLocation)
+                        Container(
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
                               ),
-                              child: Row(
+                              SizedBox(width: 12),
+                              Text('Memuat lokasi...'),
+                            ],
+                          ),
+                        )
+                      else if (_selectedLokasiId.isNotEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.green.shade200),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Icon(Icons.warning_amber, color: Colors.orange.shade600),
+                                  Icon(Icons.location_on, color: Colors.green.shade700, size: 20),
                                   SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Belum ada lokasi di proyek ini.',
-                                      style: TextStyle(color: Colors.orange.shade600),
+                                  Text(
+                                    'Lokasi',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.green.shade700,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          }
-                          
-                          return DropdownButtonFormField<String>(
-                            value: _selectedLokasiId.isEmpty ? null : _selectedLokasiId,
-                            decoration: InputDecoration(
-                              labelText: 'Lokasi *',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                              SizedBox(height: 8),
+                              Text(
+                                _selectedLokasiName,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey.shade900,
+                                ),
                               ),
-                              prefixIcon: Icon(Icons.location_on),
-                            ),
-                            items: locations.map((location) {
-                              return DropdownMenuItem(
-                                value: location.id,
-                                child: Text('${location.name} - ${location.city}'),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                final selectedLocation = locations.firstWhere((loc) => loc.id == value);
-                                setState(() {
-                                  _selectedLokasiId = value;
-                                  _selectedLokasiName = selectedLocation.name;
-                                });
-                              }
-                            },
-                            validator: (value) => value?.isEmpty ?? true ? 'Lokasi wajib dipilih' : null,
-                          );
-                        },
-                      ),
+                              SizedBox(height: 4),
+                              Text(
+                                _lokasiFullAddress,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.warning_amber, color: Colors.orange.shade600),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Anda belum memiliki lokasi yang ditugaskan.',
+                                  style: TextStyle(color: Colors.orange.shade600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       SizedBox(height: isWeb ? 20 : 16),
 
                       // Jenis
@@ -1059,6 +1114,13 @@ class _AddNotaDialogState extends State<AddNotaDialog> {
     if (_selectedPhoto == null && _webImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Foto nota wajib diupload')),
+      );
+      return;
+    }
+
+    if (_selectedLokasiId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lokasi tidak ditemukan. Hubungi admin untuk menugaskan lokasi.')),
       );
       return;
     }

@@ -43,7 +43,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         ),
                       );
                     },
-                    icon: Icon(Icons. sync_alt),
+                    icon: Icon(Icons.sync_alt),
                     tooltip: 'User Migration',
                   ),
                   if (migrationCount > 0)
@@ -410,17 +410,18 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   return SizedBox.shrink();
                 },
               ),
-            // Tampilkan lokasi user
+            // Location with better null handling
             if (user.locationId != null) 
               FutureBuilder<LocationModel?>(
                 future: LocationService.getLocationById(user.locationId!),
                 builder: (context, snapshot) {
+                  // Location found
                   if (snapshot.hasData && snapshot.data != null) {
                     return Padding(
                       padding: EdgeInsets.only(bottom: 4),
                       child: Row(
                         children: [
-                          Icon(Icons.location_on, size: 14, color: Colors.grey),
+                          Icon(Icons.location_on, size: 14, color: Colors.green),
                           SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -432,6 +433,37 @@ class _UserManagementPageState extends State<UserManagementPage> {
                       ),
                     );
                   }
+                  
+                  // Location not found (deleted)
+                  if (snapshot.connectionState == ConnectionState.done && snapshot.data == null) {
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 4),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.warning_amber, size: 12, color: Colors.orange),
+                            SizedBox(width: 4),
+                            Text(
+                              'Location not found - Please update',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.orange.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  
+                  // Loading
                   return SizedBox.shrink();
                 },
               ),
@@ -502,27 +534,20 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   List<UserModel> _filterUsers(List<UserModel> users) {
-    return users.where((user) {
-      final matchesSearch =
-          user.name.toLowerCase().contains(_searchQuery) ||
-              user.email.toLowerCase().contains(_searchQuery);
-      final matchesRole =
-          _selectedRoleFilter == null || user.role == _selectedRoleFilter;
-      return matchesSearch && matchesRole;
-    }).toList();
-  }
+    var filtered = users;
 
-  Color _getRoleColor(UserRole role) {
-    switch (role) {
-      case UserRole.admin:
-        return Colors.red.shade600;
-      case UserRole.koordinator:
-        return Colors.blue.shade600;
-      case UserRole.approver:
-        return Colors.green.shade600;
-      case UserRole.bawahan:
-        return Colors.grey.shade600;
+    if (_selectedRoleFilter != null) {
+      filtered = filtered.where((user) => user.role == _selectedRoleFilter).toList();
     }
+
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((user) {
+        return user.name.toLowerCase().contains(_searchQuery) ||
+               user.email.toLowerCase().contains(_searchQuery);
+      }).toList();
+    }
+
+    return filtered;
   }
 
   String _getRoleDisplayName(UserRole role) {
@@ -535,6 +560,19 @@ class _UserManagementPageState extends State<UserManagementPage> {
         return 'Approver';
       case UserRole.bawahan:
         return 'Bawahan';
+    }
+  }
+
+  Color _getRoleColor(UserRole role) {
+    switch (role) {
+      case UserRole.admin:
+        return Colors.red;
+      case UserRole.koordinator:
+        return Colors.blue;
+      case UserRole.approver:
+        return Colors.green;
+      case UserRole.bawahan:
+        return Colors.orange;
     }
   }
 
@@ -560,12 +598,31 @@ class _UserManagementPageState extends State<UserManagementPage> {
     _showUserDialog(user);
   }
 
-  void _showUserDialog(UserModel? user) {
+  void _showUserDialog(UserModel? user) async {
     final _nameController = TextEditingController(text: user?.name ?? '');
     final _emailController = TextEditingController(text: user?.email ?? '');
     final _passwordController = TextEditingController();
     UserRole _selectedRole = user?.role ?? UserRole.bawahan;
     String? _selectedLocationId = user?.locationId;
+    
+    // Validate if current locationId still exists
+    if (_selectedLocationId != null) {
+      final location = await LocationService.getLocationById(_selectedLocationId);
+      if (location == null) {
+        // Location was deleted, reset to null
+        _selectedLocationId = null;
+        if (user != null) {
+          // Show warning
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('User\'s assigned location no longer exists. Please select a new location.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    }
 
     showDialog(
       context: context,
@@ -624,43 +681,89 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   },
                 ),
                 SizedBox(height: 16),
-                // Dropdown untuk pilihan lokasi
+                // Dropdown for location selection with validation
                 StreamBuilder<List<LocationModel>>(
-                  stream: LocationService.getAllLocations(),
+                  stream: LocationService.getLocationsByProject(_selectedProjectId!),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
-                      return CircularProgressIndicator();
+                      return Container(
+                        height: 50,
+                        child: Center(child: CircularProgressIndicator()),
+                      );
                     }
 
                     final locations = snapshot.data!;
                     
-                    return DropdownButtonFormField<String>(
-                      value: _selectedLocationId,
-                      decoration: InputDecoration(
-                        labelText: 'Location (Optional)',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.location_on),
-                      ),
-                      items: [
-                        DropdownMenuItem<String>(
-                          value: null,
-                          child: Text('No Location'),
+                    // Validate if selected location exists in current list
+                    bool isCurrentLocationValid = _selectedLocationId == null || 
+                        locations.any((loc) => loc.id == _selectedLocationId);
+                    
+                    if (!isCurrentLocationValid && _selectedLocationId != null) {
+                      // Current location is not in the list, reset to null
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        setDialogState(() => _selectedLocationId = null);
+                      });
+                    }
+                    
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DropdownButtonFormField<String>(
+                          value: isCurrentLocationValid ? _selectedLocationId : null,
+                          decoration: InputDecoration(
+                            labelText: 'Location (Optional)',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.location_on),
+                          ),
+                          items: [
+                            DropdownMenuItem<String>(
+                              value: null,
+                              child: Text('No Location'),
+                            ),
+                            ...locations.map((location) {
+                              return DropdownMenuItem<String>(
+                                value: location.id,
+                                child: Text('${location.name} - ${location.city}'),
+                              );
+                            }).toList(),
+                          ],
+                          onChanged: (value) {
+                            setDialogState(() => _selectedLocationId = value);
+                          },
                         ),
-                        ...locations.map((location) {
-                          return DropdownMenuItem<String>(
-                            value: location.id,
-                            child: Text(location.name),
-                          );
-                        }).toList(),
+                        if (user != null && user.locationId != null && !isCurrentLocationValid)
+                          Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: Container(
+                              padding: EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.orange.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.warning_amber, size: 16, color: Colors.orange),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Previous location was deleted. Please select a new one.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.orange.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
-                      onChanged: (value) {
-                        setDialogState(() => _selectedLocationId = value);
-                      },
                     );
                   },
                 ),
                 SizedBox(height: 8),
-                // Info untuk admin
+                // Info for admin
                 if (_selectedRole == UserRole.admin)
                   Container(
                     padding: EdgeInsets.all(12),
@@ -702,7 +805,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 _selectedRole,
                 _selectedLocationId,
               ),
-              child: Text(user == null ? 'Add' : 'Update'),
+              child: Text('Save'),
             ),
           ],
         ),
@@ -711,8 +814,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
   }
 
   void _showManageProjectsDialog(UserModel user) {
-    List<String> selectedProjects = List<String>.from(user.projectIds);
-    
+    List<String> selectedProjectIds = List.from(user.projectIds);
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -724,22 +827,24 @@ class _UserManagementPageState extends State<UserManagementPage> {
               stream: ProjectService.getProjects(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return CircularProgressIndicator();
-                
+
+                final projects = snapshot.data!;
+
                 return ListView(
                   shrinkWrap: true,
-                  children: snapshot.data!.map((project) {
-                    bool isSelected = selectedProjects.contains(project.id);
+                  children: projects.map((project) {
+                    bool isAssigned = selectedProjectIds.contains(project.id);
                     
                     return CheckboxListTile(
                       title: Text(project.name),
-                      subtitle: Text(project.description),
-                      value: isSelected,
+                      subtitle: Text(project.description ?? ''),
+                      value: isAssigned,
                       onChanged: (value) {
                         setDialogState(() {
                           if (value == true) {
-                            selectedProjects.add(project.id!);
+                            selectedProjectIds.add(project.id!);
                           } else {
-                            selectedProjects.remove(project.id);
+                            selectedProjectIds.remove(project.id);
                           }
                         });
                       },
@@ -755,7 +860,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
               child: Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () => _updateUserProjects(user, selectedProjects),
+              onPressed: () => _updateUserProjects(user, selectedProjectIds),
               child: Text('Save'),
             ),
           ],
@@ -769,7 +874,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
     
     String? sourceProjectId;
     List<String> selectedUserIds = [];
-    
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -779,7 +884,14 @@ class _UserManagementPageState extends State<UserManagementPage> {
             width: double.maxFinite,
             height: 400,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(
+                  'Select users from another project to copy to ${_selectedProjectId}',
+                  style: TextStyle(fontSize: 14),
+                ),
+                SizedBox(height: 16),
+                
                 // Source Project Selector
                 StreamBuilder<List<ProjectModel>>(
                   stream: ProjectService.getProjects(),
@@ -897,13 +1009,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
     Navigator.pop(context);
 
     try {
-      // Tentukan projectIds berdasarkan role
+      // Determine projectIds based on role
       List<String> projectIds = [];
       if (role != UserRole.admin && _selectedProjectId != null) {
-        // Non-admin assign ke project yang sedang dipilih
+        // Non-admin assign to current project
         projectIds = [_selectedProjectId!];
       }
-      // Admin tidak perlu projectIds (bisa akses semua)
+      // Admin doesn't need projectIds (can access all)
 
       if (existingUser == null) {
         // Create new user
@@ -917,7 +1029,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
           name,
           role,
           locationId,
-          projectIds, // Multi-project support
+          projectIds,
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -929,7 +1041,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
           name: name, 
           role: role, 
           locationId: locationId,
-          // Keep existing projects for updates
         );
 
         await UserService.updateUser(existingUser.id, updatedUser);

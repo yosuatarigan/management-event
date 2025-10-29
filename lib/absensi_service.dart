@@ -216,6 +216,27 @@ class AbsensiService {
     return getAbsensiByProjectAndDate(currentProjectId, date, coordinatorId);
   }
 
+  // Get today's absensi for specific bawahan (current project)
+  static Future<AbsensiModel?> getTodayAbsensi(String bawahanId, DateTime date) async {
+    final currentProjectId = SessionManager.currentProjectId;
+    if (currentProjectId == null) {
+      return null;
+    }
+    return getAbsensiByBawahanAndDateInProject(bawahanId, date, currentProjectId);
+  }
+
+  // Get absensi history for current coordinator (current project)
+  static Stream<List<AbsensiModel>> getAbsensiHistory() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentProjectId = SessionManager.currentProjectId;
+    
+    if (currentUser == null || currentProjectId == null) {
+      return Stream.value([]);
+    }
+    
+    return getAbsensiByProjectAndCoordinator(currentProjectId, currentUser.uid);
+  }
+
   // Get all bawahan (current project)
   static Stream<List<UserModel>> getAllBawahan() {
     final currentProjectId = SessionManager.currentProjectId;
@@ -252,6 +273,38 @@ class AbsensiService {
       };
     }
     return getAbsensiStatsByProject(currentProjectId, coordinatorId, date);
+  }
+
+  // Create absensi (wrapper for single absensi creation)
+  static Future<void> createAbsensi(
+    String bawahanId,
+    String bawahanName,
+    DateTime date,
+    StatusAbsensi status,
+    String coordinatorId,
+    String coordinatorName,
+    String lokasiId,
+    String lokasiName,
+  ) async {
+    final currentProjectId = SessionManager.currentProjectId;
+    if (currentProjectId == null) {
+      throw Exception('No project selected');
+    }
+
+    final absensi = AbsensiModel(
+      absensiId: '',
+      bawahanId: bawahanId,
+      bawahanName: bawahanName,
+      koordinatorId: coordinatorId,
+      koordinatorName: coordinatorName,
+      lokasiId: lokasiId,
+      lokasiName: lokasiName,
+      tanggal: date,
+      status: status,
+      createdAt: DateTime.now(),
+    );
+
+    return createOrUpdateAbsensiWithProject(absensi, currentProjectId);
   }
 
   // Create or update absensi (current project)
